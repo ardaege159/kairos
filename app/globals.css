@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Tokens from design/DESIGN.md (Stitch "Kairos Financial"). */
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-surface: #f7f9fb;
+  --color-surface-low: #f2f4f6;
+  --color-surface-container: #eceef0;
+  --color-surface-high: #e6e8ea;
+  --color-ink: #191c1e;
+  --color-ink-muted: #464554;
+  --color-outline: #767586;
+  --color-outline-soft: #c7c4d7;
+
+  --color-primary: #4648d4;
+  --color-primary-strong: #2f2ebe;
+  --color-primary-soft: #e1e0ff;
+  --color-secondary: #8127cf;
+
+  --color-gain: #006c49;
+  --color-gain-soft: #6ffbbe;
+  --color-loss: #ba1a1a;
+  --color-loss-soft: #ffdad6;
+
+  --radius-card: 1.5rem;
+  --radius-control: 0.5rem;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  color: var(--color-ink);
+  /* Soft base gradient behind the glass layers. */
+  background:
+    radial-gradient(60rem 40rem at 85% -10%, rgb(129 39 207 / 0.10), transparent 60%),
+    radial-gradient(50rem 36rem at -10% 110%, rgb(70 72 212 / 0.10), transparent 60%),
+    var(--color-surface);
+  background-attachment: fixed;
+}
+
+@layer components {
+  /* Layer 2 card: medium blur, 40% fill, light-leak edge on top/left, purple-tinted shadow. */
+  .glass-card {
+    background: rgb(255 255 255 / 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgb(255 255 255 / 0.5);
+    border-top-color: rgb(255 255 255 / 0.85);
+    border-left-color: rgb(255 255 255 / 0.85);
+    border-radius: var(--radius-card);
+    box-shadow: 0 10px 30px rgb(99 102 241 / 0.08);
+  }
+
+  /* Sidebar pane: strongest blur to separate it from scrolling content. */
+  .glass-pane {
+    background: rgb(255 255 255 / 0.45);
+    backdrop-filter: blur(40px);
+    -webkit-backdrop-filter: blur(40px);
+    border: 1px solid rgb(255 255 255 / 0.6);
+    box-shadow: 0 10px 30px rgb(99 102 241 / 0.06);
+  }
+
+  /* Financial figures: tabular digits so columns align. */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
