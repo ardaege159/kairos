@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
 import { StockTable } from "@/components/stocks/stock-table";
 import { PAGE_SIZE, SORT_KEYS, searchStocks, type SortKey, type Universe } from "@/lib/data/stocks";
+import { getWatchlist } from "@/lib/data/watchlist";
 import { SECTOR_TR, sectorName } from "@/lib/sectors";
 
 export const metadata: Metadata = { title: "Hisseler" };
@@ -16,9 +17,13 @@ async function StockList({ searchParams }: { searchParams: Params }) {
   const dir = one(sp.yon) === "asc" ? "asc" : one(sp.yon) === "desc" ? "desc" : sort === "ticker" ? "asc" : "desc";
   const universe = (["sp500", "hisse", "etf"] as const).find((u) => u === one(sp.evren)) ?? ("tumu" as Universe);
   const page = Math.max(1, Number(one(sp.sayfa)) || 1);
-  const { rows, total } = await searchStocks({ q: one(sp.q), sector: one(sp.sektor), universe, sort, dir, page });
+  const [{ rows, total }, watchlist] = await Promise.all([
+    searchStocks({ q: one(sp.q), sector: one(sp.sektor), universe, sort, dir, page }),
+    getWatchlist(),
+  ]);
+  const watched = new Set(watchlist);
   const sectors = Object.keys(SECTOR_TR).sort((a, b) => sectorName(a).localeCompare(sectorName(b), "tr"));
-  return <StockTable rows={rows} total={total} page={page} pageSize={PAGE_SIZE} sectors={sectors} sort={sort} dir={dir} />;
+  return <StockTable rows={rows.map((r) => ({ ...r, watched: watched.has(r.ticker) }))} total={total} page={page} pageSize={PAGE_SIZE} sectors={sectors} sort={sort} dir={dir} />;
 }
 
 export default function HisselerPage({ searchParams }: PageProps<"/hisseler">) {

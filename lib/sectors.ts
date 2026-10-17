@@ -13,7 +13,22 @@ export const SECTOR_TR: Record<string, string> = {
   Materials: "Hammadde",
 };
 
-export const sectorName = (s: string | null | undefined) => (s ? SECTOR_TR[s] ?? s : "Sektör yok");
+/** SPDR Select Sector ETFs: the usual price proxy for each GICS sector. */
+export const SECTOR_ETF: Record<string, string> = {
+  "Information Technology": "XLK",
+  "Health Care": "XLV",
+  Financials: "XLF",
+  "Consumer Discretionary": "XLY",
+  "Communication Services": "XLC",
+  Industrials: "XLI",
+  "Consumer Staples": "XLP",
+  Energy: "XLE",
+  Utilities: "XLU",
+  "Real Estate": "XLRE",
+  Materials: "XLB",
+};
+
+export const sectorName =(s: string | null | undefined) => (s ? SECTOR_TR[s] ?? s : "Sektör yok");
 
 type Range = [from: number, to: number, sector: string];
 

@@ -10,11 +10,11 @@ import { InfoTip } from "@/components/info-tip";
 import { PageHeader } from "@/components/page-header";
 import { SERIES } from "@/components/stocks/chart-theme";
 import { TickerLogo } from "@/components/ticker-logo";
-import { getPrices, getStocks, type StockRow } from "@/lib/data/stocks";
+import { getAllSectorStats, getPrices, getStocks, type StockRow } from "@/lib/data/stocks";
 import { formatMetric, formatPercent, formatPrice } from "@/lib/format";
 import { GROUP_LABELS, GROUP_MEANINGS, METRICS, type MetricGroup } from "@/lib/metrics/definitions";
 import { SCORE_PARTS, type ScorePartKey } from "@/lib/score/weights";
-import { sectorName } from "@/lib/sectors";
+import { SECTOR_ETF, sectorName } from "@/lib/sectors";
 
 export const metadata: Metadata = { title: "Karşılaştır" };
 
@@ -63,7 +63,15 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
   const requested = typeof sp.h === "string" ? sp.h.split(",").map((t) => t.trim().toUpperCase()) : [];
   const stocks = await getStocks([...new Set(requested)].slice(0, MAX_COMPARE));
   const tickers = stocks.map((s) => s.ticker);
-  const prices = await Promise.all(stocks.map((s) => getPrices(s.ticker, s.core)));
+  // Compare against the sector: sector medians in the table, the sector's SPDR ETF on the chart.
+  const withSector = sp.sektor !== "0";
+  const sectors = withSector ? [...new Set(stocks.filter((s) => s.asset_type === "stock" && s.sector).map((s) => s.sector!))] : [];
+  const [prices, sectorPrices, allStats] = await Promise.all([
+    Promise.all(stocks.map((s) => getPrices(s.ticker, s.core))),
+    Promise.all(sectors.map((sec) => (SECTOR_ETF[sec] ? getPrices(SECTOR_ETF[sec], false) : Promise.resolve([])))),
+    sectors.length ? getAllSectorStats() : Promise.resolve({} as Awaited<ReturnType<typeof getAllSectorStats>>),
+  ]);
+  const toggleHref = `/karsilastir?h=${tickers.join(",")}${withSector ? "&sektor=0" : ""}`;
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,17 +99,38 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
             ))}
           </div>
 
-          {stocks.length > 1 ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={toggleHref} aria-pressed={withSector}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${withSector ? "bg-primary text-white" : "bg-white/70 text-ink-muted hover:text-ink"}`}>
+              <span className={`h-3 w-3 rounded-full border-2 ${withSector ? "border-white bg-white/40" : "border-outline"}`} aria-hidden />
+              Sektörüyle karşılaştır
+            </Link>
+            <InfoTip title="Sektörle karşılaştırma">
+              Açıkken grafiğe her hissenin sektörünü temsil eden SPDR sektör ETF&apos;i (ör. teknoloji için XLK) kesikli çizgiyle, tabloya da
+              sektördeki S&amp;P 500 şirketlerinin medyan değerleri eklenir. Böylece hissenin sektörünün önünde mi gerisinde mi olduğunu görürsün.
+            </InfoTip>
+          </div>
+
+          {stocks.length > 1 || sectors.length ? (
             <section className="glass-card p-5" aria-labelledby="perf-title">
               <h2 id="perf-title" className="flex items-center gap-1 font-semibold">
                 Son 1 yıl getiri
                 <InfoTip title="Getiri karşılaştırması">
                   Her hisse, grafiğin başındaki fiyatı 0% kabul edilerek çizilir. Böylece fiyatları çok farklı hisseler aynı
-                  eksende karşılaştırılabilir: +%20, o günden bu yana %20 kazandırdı demektir (temettü hariç).
+                  eksende karşılaştırılabilir: +%20, o günden bu yana %20 kazandırdı demektir (temettü hariç). Kesikli çizgiler
+                  sektör ETF&apos;leridir.
                 </InfoTip>
               </h2>
               <p className="mt-1 mb-4 text-sm text-ink-muted">Başlangıç noktası %0 olacak şekilde.</p>
-              <PerformanceChart series={stocks.map((s, i) => ({ ticker: s.ticker, points: prices[i] }))} />
+              <PerformanceChart
+                series={[
+                  ...stocks.map((s, i) => ({ ticker: s.ticker, points: prices[i], color: SERIES[i] })),
+                  ...sectors
+                    .map((sec, i) => ({ ticker: SECTOR_ETF[sec] ?? sec, points: sectorPrices[i], color: "#767586", dashed: true,
+                      label: `${SECTOR_ETF[sec]} · ${sectorName(sec)} sektörü` }))
+                    .filter((s) => s.points.length),
+                ]}
+              />
             </section>
           ) : null}
 
@@ -128,8 +157,9 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
           <section className="glass-card p-5" aria-labelledby="metrics-title">
             <h2 id="metrics-title" className="font-semibold">Göstergeler</h2>
             <p className="mt-1 text-sm text-ink-muted">
-              Her satırda en iyi değer kalın ve işaretli. Farklı sektörlerdeki hisseleri karşılaştırırken dikkatli ol: bir
-              bankanın ve bir yazılım şirketinin normal F/K&apos;sı çok farklıdır.
+              Her satırda hisseler arasındaki en iyi değer kalın ve işaretli. Gri sütunlar sektördeki S&amp;P 500 şirketlerinin medyanıdır
+              (en iyi seçimine katılmaz). Farklı sektörlerdeki hisseleri karşılaştırırken dikkatli ol: bir bankanın ve bir yazılım
+              şirketinin normal F/K&apos;sı çok farklıdır.
             </p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[560px] text-sm num">
@@ -144,11 +174,17 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
                         </span>
                       </th>
                     ))}
+                    {sectors.map((sec) => (
+                      <th key={sec} scope="col" className="bg-surface-container/50 py-2 pr-4 pl-3 text-right text-xs font-medium">
+                        Sektör medyanı
+                        <span className="block font-normal">{sectorName(sec)}</span>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <th scope="rowgroup" colSpan={stocks.length + 1} className="pt-4 pb-1 text-left text-xs font-semibold text-primary-strong">
+                    <th scope="rowgroup" colSpan={stocks.length + sectors.length + 1} className="pt-4 pb-1 text-left text-xs font-semibold text-primary-strong">
                       Kairos Skoru
                     </th>
                   </tr>
@@ -170,6 +206,11 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
                             {v ?? "—"}
                           </td>
                         ))}
+                        {sectors.map((sec) => (
+                          <td key={sec} className="bg-surface-container/50 py-2 pr-4 text-right text-ink-muted" title="Sektörün ortası tanım gereği 50'dir">
+                            50
+                          </td>
+                        ))}
                       </tr>
                     );
                   })}
@@ -177,7 +218,7 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
                 {GROUPS.map((g) => (
                   <tbody key={g}>
                     <tr>
-                      <th scope="rowgroup" colSpan={stocks.length + 1} className="pt-4 pb-1 text-left text-xs font-semibold text-primary-strong">
+                      <th scope="rowgroup" colSpan={stocks.length + sectors.length + 1} className="pt-4 pb-1 text-left text-xs font-semibold text-primary-strong">
                         <span className="inline-flex items-center gap-1">
                           {GROUP_LABELS[g]}
                           <InfoTip title={GROUP_LABELS[g]}>{GROUP_MEANINGS[g]}</InfoTip>
@@ -199,6 +240,11 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
                             <td key={stocks[i].ticker} className={`py-2 pr-4 text-right ${i === best ? "font-semibold" : ""}`}>
                               {i === best ? <Check size={12} className="mr-1 inline text-primary" aria-label="en iyi" /> : null}
                               {formatMetric(v, d.format)}
+                            </td>
+                          ))}
+                          {sectors.map((sec) => (
+                            <td key={sec} className="bg-surface-container/50 py-2 pr-4 text-right text-ink-muted">
+                              {formatMetric(allStats[sec]?.[d.key]?.median, d.format)}
                             </td>
                           ))}
                         </tr>

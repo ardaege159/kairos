@@ -5,7 +5,9 @@ import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContai
 import { formatDate, formatPercent } from "@/lib/format";
 import { AXIS, GRID, SERIES } from "@/components/stocks/chart-theme";
 
-type Series = { ticker: string; points: { date: string; close: number }[] };
+/** A dashed series is a benchmark (e.g. a sector ETF); it carries its own neutral colour and label. */
+type Series = { ticker: string; points: { date: string; close: number }[]; color?: string; dashed?: boolean; label?: string };
+const DASHES = ["6 4", "2 3", "8 3 2 3", "1 4"];
 
 function PerfTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
@@ -44,13 +46,14 @@ export function PerformanceChart({ series }: { series: Series[] }) {
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
           <CartesianGrid vertical={false} stroke={GRID} />
           <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS}
-            tickFormatter={(d: string) => new Intl.DateTimeFormat("tr-TR", { month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`))} />
+            tickFormatter={(d: string) => new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`))} />
           <YAxis tickFormatter={(v: number) => formatPercent(v, true)} tickLine={false} axisLine={false} width={56} tick={AXIS} />
           <ReferenceLine y={0} stroke="#767586" />
           <Tooltip content={PerfTooltip} cursor={{ stroke: "#767586", strokeDasharray: "3 3" }} />
           <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#464554" }} />
           {series.map((s, i) => (
-            <Line key={s.ticker} type="linear" dataKey={s.ticker} name={s.ticker} stroke={SERIES[i]} strokeWidth={2} dot={false}
+            <Line key={s.ticker} type="linear" dataKey={s.ticker} name={s.label ?? s.ticker} stroke={s.color ?? SERIES[i]}
+              strokeWidth={s.dashed ? 1.5 : 2} strokeDasharray={s.dashed ? DASHES[i % DASHES.length] : undefined} dot={false}
               activeDot={{ r: 4, stroke: "#fff", strokeWidth: 2 }} isAnimationActive={false} />
           ))}
         </LineChart>

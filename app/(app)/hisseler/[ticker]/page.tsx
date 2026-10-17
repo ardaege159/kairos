@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { TickerLogo } from "@/components/ticker-logo";
+import { WatchButton } from "@/components/watch-button";
+import { getWatchlist } from "@/lib/data/watchlist";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -54,15 +56,16 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
     getTickerNews(stock.ticker),
     isEtf ? Promise.resolve(null) : getNextEarnings(stock.ticker),
     requestTime(),
+    getWatchlist(),
   ]);
-  const ratio = (a?: number, b?: number) => (a == null || b == null || b === 0 ? null : a / b);
+  const ratio =(a?: number, b?: number) => (a == null || b == null || b === 0 ? null : a / b);
   const quarterPoints: QuarterPoint[] = quarters
     .filter((q) => q.values.revenue != null || q.values.net_income != null)
     .map((q) => ({
@@ -108,8 +111,9 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             </p>
           ) : null}
         </div>
-        <div className="text-right">
-          <p className="text-3xl font-bold tracking-tight num">{formatPrice(stock.price)}</p>
+        <div className="flex flex-col items-end gap-1 text-right">
+          <WatchButton ticker={stock.ticker} watched={watchlist.includes(stock.ticker)} />
+          <p className="mt-2 text-3xl font-bold tracking-tight num">{formatPrice(stock.price)}</p>
           {stock.change_1d != null ? (
             <p className={`inline-flex items-center gap-1 text-sm num ${up ? "text-gain" : "text-loss"}`}>
               {up ? <ArrowUp size={14} aria-hidden /> : <ArrowDown size={14} aria-hidden />}

@@ -61,12 +61,24 @@ try {
   const since = last?.[0]?.published_at
     ? new Date(Date.parse(last[0].published_at) - 3600e3)
     : new Date(Date.now() - 24 * 3600e3);
+  // Watchlist first: up to a third of the budget goes to the owner's tickers, the rest to general US news.
+  const { data: wl } = await db.from("watchlist").select("ticker");
+  const watch = [...new Set((wl ?? []).map((w) => w.ticker))].slice(0, 50);
+  const plan: { page: number; symbols?: string }[] = [];
+  const watchPages = watch.length ? Math.max(1, Math.floor(CALLS / 3)) : 0;
+  for (let p = 1; p <= watchPages; p++) plan.push({ page: p, symbols: watch.join(",") });
+  for (let p = 1; p <= CALLS - watchPages; p++) plan.push({ page: p });
+
   let calls = 0, mxArticles = 0, budgetHit = false;
-  for (let page = 1; page <= CALLS; page++) {
+  let skipQuery: string | undefined; // stop paging a query once it runs out of results
+  for (const step of plan) {
+    if (skipQuery === (step.symbols ?? "general")) continue;
+    const page = step.page;
     const u = new URL("https://api.marketaux.com/v1/news/all");
     u.search = new URLSearchParams({
-      countries: "us", filter_entities: "true", must_have_entities: "true", language: "en", limit: "3", page: String(page),
-      published_after: since.toISOString().slice(0, 19), api_token: MARKETAUX_API_TOKEN.trim(),
+      ...(step.symbols ? { symbols: step.symbols } : { countries: "us" }),
+      filter_entities: "true", must_have_entities: "true", language: "en", limit: "3", page: String(page),
+      published_after: (step.symbols ? new Date(Date.now() - 3 * 864e5) : since).toISOString().slice(0, 19), api_token: MARKETAUX_API_TOKEN.trim(),
     }).toString();
     const r = await fetch(u);
     calls++;
@@ -87,7 +99,7 @@ try {
         image_url: a.image_url, source_domain: a.source, published_at: a.published_at, topic, sectors });
       for (const e of linked) links.push({ news_id: a.uuid, ticker: e.symbol, match_score: e.match_score, sentiment: e.sentiment_score });
     }
-    if (j.meta.returned < 3 || page * 3 >= j.meta.found) break;
+    if (j.meta.returned < 3 || page * 3 >= j.meta.found) skipQuery = step.symbols ?? "general";
   }
 
   // --- RSS ---

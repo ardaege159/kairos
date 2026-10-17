@@ -92,6 +92,33 @@ export async function getEarnings(from: string, to: string): Promise<EarningsEve
     .sort((a, b) => a.report_date.localeCompare(b.report_date) || (b.market_cap ?? 0) - (a.market_cap ?? 0));
 }
 
+/** Next earnings date per ticker for a set of tickers (e.g. the watchlist). */
+export async function getUpcomingEarningsFor(tickers: string[]): Promise<Record<string, { report_date: string; time_of_day: string | null }>> {
+  if (!tickers.length) return {};
+  const supabase = await db();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase.from("earnings_calendar").select("ticker,report_date,time_of_day").in("ticker", tickers).gte("report_date", today).order("report_date");
+  if (error) throw error;
+  const out: Record<string, { report_date: string; time_of_day: string | null }> = {};
+  for (const r of data ?? []) out[r.ticker] ??= { report_date: r.report_date, time_of_day: r.time_of_day };
+  return out;
+}
+
+/** Latest news for any of the given tickers, newest first. */
+export async function getNewsForTickers(tickers: string[], limit = 15): Promise<NewsItem[]> {
+  if (!tickers.length) return [];
+  const supabase = await db();
+  const { data, error } = await supabase
+    .from("news_items")
+    .select(NEWS_SELECT.replace("news_tickers(", "news_tickers!inner("))
+    .in("news_tickers.ticker", tickers)
+    .order("published_at", { ascending: false })
+    .limit(limit * 2);
+  if (error) throw error;
+  const set = new Set(tickers);
+  return (data as unknown as RawNews[]).map(toItem).filter((n) => n.tickers.some((t) => set.has(t.ticker))).slice(0, limit);
+}
+
 export async function getNextEarnings(ticker: string): Promise<{ report_date: string; time_of_day: string | null; estimate_eps: number | null } | null> {
   const supabase = await db();
   const today = new Date().toISOString().slice(0, 10);

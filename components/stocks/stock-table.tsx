@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { TickerLogo } from "@/components/ticker-logo";
+import { WatchButton } from "@/components/watch-button";
 import { formatMoney, formatMultiple, formatPercent, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
 import { sectorName } from "@/lib/sectors";
@@ -22,6 +23,7 @@ export type StockListItem = {
   pb: number | null;
   return_1y: number | null;
   score: number | null;
+  watched?: boolean;
 };
 
 type SortKey = "ticker" | "price" | "change_1d" | "market_cap" | "pe" | "pb" | "return_1y" | "score";
@@ -178,16 +180,19 @@ export function StockTable({
             {rows.map((s) => (
               <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-white/50">
                 <td className="px-4 py-2.5">
-                  <Link href={`/hisseler/${s.ticker}`} className="group flex items-center gap-3">
-                    <TickerLogo ticker={s.ticker} size={30} etf={s.asset_type === "etf"} />
-                    <span className="flex min-w-0 flex-col">
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
-                        {s.asset_type === "etf" ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">ETF</span> : null}
+                  <div className="flex items-center gap-2">
+                    <WatchButton ticker={s.ticker} watched={!!s.watched} compact />
+                    <Link href={`/hisseler/${s.ticker}`} className="group flex items-center gap-3">
+                      <TickerLogo ticker={s.ticker} size={30} etf={s.asset_type === "etf"} />
+                      <span className="flex min-w-0 flex-col">
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
+                          {s.asset_type === "etf" ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">ETF</span> : null}
+                        </span>
+                        <span className="max-w-[18rem] truncate text-xs text-ink-muted">{s.name}</span>
                       </span>
-                      <span className="max-w-[18rem] truncate text-xs text-ink-muted">{s.name}</span>
-                    </span>
-                  </Link>
+                    </Link>
+                  </div>
                 </td>
                 <td className="px-4 py-2.5 text-right">{formatPrice(s.price)}</td>
                 <td className="px-4 py-2.5 text-right"><Change v={s.change_1d} /></td>
