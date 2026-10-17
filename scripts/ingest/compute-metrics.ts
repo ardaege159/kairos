@@ -23,7 +23,9 @@ if (!url || !secret) {
 }
 const db = createClient(url, secret, { auth: { persistSession: false } });
 
-async function selectAll<T>(table: string, columns: string, filter?: (q: any) => any): Promise<T[]> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST builder generics are untyped without generated DB types
+type Query = any;
+async function selectAll<T>(table: string, columns: string, filter?: (q: Query) => Query): Promise<T[]> {
   const out: T[] = [];
   for (let from = 0; ; from += 1000) {
     let q = db.from(table).select(columns).range(from, from + 999);

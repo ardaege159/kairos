@@ -27,7 +27,11 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 }
 
 export function Sidebar() {
-  const pathname = usePathname();
+  return <SidebarView pathname={usePathname()} />;
+}
+
+/** Hook-free render, also used as the Suspense fallback while the pathname streams in. */
+export function SidebarView({ pathname }: { pathname: string }) {
   return (
     <aside className="glass-pane sticky top-4 hidden h-[calc(100dvh-2rem)] w-60 shrink-0 flex-col rounded-[var(--radius-card)] p-4 md:flex">
       <Link href="/" className="mb-8 px-3 pt-2">
@@ -50,7 +54,10 @@ export function Sidebar() {
 
 /** Compact top navigation for screens narrower than md, where the sidebar is hidden. */
 export function MobileNav() {
-  const pathname = usePathname();
+  return <MobileNavView pathname={usePathname()} />;
+}
+
+export function MobileNavView({ pathname }: { pathname: string }) {
   return (
     <nav
       aria-label="Ana menü"
