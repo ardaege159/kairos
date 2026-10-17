@@ -28,7 +28,15 @@ export const SECTOR_ETF: Record<string, string> = {
   Materials: "XLB",
 };
 
-export const sectorName =(s: string | null | undefined) => (s ? SECTOR_TR[s] ?? s : "Sektör yok");
+const slugify = (s: string) =>
+  s.toLocaleLowerCase("tr").replace(/ı/g, "i").replace(/ğ/g, "g").replace(/ü/g, "u").replace(/ş/g, "s").replace(/ö/g, "o").replace(/ç/g, "c")
+    .replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+/** URL slug from the Turkish name: "Information Technology" -> "bilgi-teknolojileri". */
+export const sectorSlug = (sector: string) => slugify(SECTOR_TR[sector] ?? sector);
+export const sectorFromSlug = (slug: string) => Object.keys(SECTOR_TR).find((s) => sectorSlug(s) === slug) ?? null;
+
+export const sectorName = (s: string | null | undefined) => (s ? SECTOR_TR[s] ?? s : "Sektör yok");
 
 type Range = [from: number, to: number, sector: string];
 

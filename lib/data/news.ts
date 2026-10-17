@@ -42,11 +42,12 @@ const toItem = ({ news_tickers, ...n }: RawNews): NewsItem => ({
     .map((t) => ({ ticker: t.ticker, sentiment: t.sentiment == null ? null : Number(t.sentiment) })),
 });
 
-export async function getNews(opts: { kind?: "company" | "global"; topic?: string; hours?: number; limit?: number } = {}): Promise<NewsItem[]> {
+export async function getNews(opts: { kind?: "company" | "global"; topic?: string; sector?: string; hours?: number; limit?: number } = {}): Promise<NewsItem[]> {
   const supabase = await db();
   let q = supabase.from("news_items").select(NEWS_SELECT).order("published_at", { ascending: false }).limit(opts.limit ?? 60);
   if (opts.kind) q = q.eq("kind", opts.kind);
   if (opts.topic) q = q.eq("topic", opts.topic);
+  if (opts.sector) q = q.contains("sectors", [opts.sector]);
   if (opts.hours) q = q.gte("published_at", new Date(Date.now() - opts.hours * 3600e3).toISOString());
   const { data, error } = await q;
   if (error) throw error;

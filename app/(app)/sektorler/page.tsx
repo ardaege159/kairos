@@ -8,7 +8,7 @@ import { SectorReturnsChart } from "@/components/sectors/sector-returns-chart";
 import { getAllSectorStats, listSp500 } from "@/lib/data/stocks";
 import { formatMetric, formatPercent } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
-import { sectorName } from "@/lib/sectors";
+import { sectorName, sectorSlug } from "@/lib/sectors";
 
 export const metadata: Metadata = { title: "Sektörler" };
 
@@ -75,7 +75,7 @@ async function SectorOverview() {
               {sectors.map((s) => (
                 <tr key={s.sector} className="border-t border-outline-soft/40">
                   <th scope="row" className="py-2.5 pr-4 text-left font-normal">
-                    <Link href={`/hisseler?sektor=${encodeURIComponent(s.sector)}`} className="font-medium hover:text-primary">
+                    <Link href={`/sektorler/${sectorSlug(s.sector)}`} className="font-medium hover:text-primary">
                       {sectorName(s.sector)}
                     </Link>
                     <span className="block text-xs text-ink-muted">{s.n} hisse</span>
