@@ -11,9 +11,9 @@ import { formatMoney } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Bugün" };
 
-/** Calendar dates are US market dates. */
-function nyDate(offsetDays = 0) {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(Date.now() + offsetDays * 864e5));
+/** Calendar dates are US market dates. `now` must come from requestTime() so it is read at request time. */
+function nyDate(now: number, offsetDays = 0) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(now + offsetDays * 864e5));
 }
 function dayLabel(iso: string, today: string) {
   if (iso === today) return "Bugün";
@@ -83,10 +83,10 @@ function EarningsList({ events, today }: { events: EarningsEvent[]; today: strin
 }
 
 async function Today() {
-  const today = nyDate();
-  const until = nyDate(7);
-  const [now, global, company, econ, earnings] = await Promise.all([
-    requestTime(),
+  const now = await requestTime();
+  const today = nyDate(now);
+  const until = nyDate(now, 7);
+  const [global, company, econ, earnings] = await Promise.all([
     getNews({ kind: "global", hours: 24, limit: 80 }),
     getNews({ kind: "company", hours: 24, limit: 30 }),
     getEconCalendar(today, until),
@@ -114,7 +114,11 @@ async function Today() {
         </section>
         <section className="glass-card p-5" aria-labelledby="global-title">
           <h2 id="global-title" className="mb-3 font-semibold">Günün gelişmeleri</h2>
-          <NewsList now={now} items={global.slice(0, 12)} emptyText="Son 24 saatte haber yok. Haberleri güncellemek için veri betiğini çalıştır." />
+          <NewsList
+            now={now}
+            items={global.filter((n) => n.topic).slice(0, 12)}
+            emptyText="Son 24 saatte piyasayla ilgili başlık yok. Haberleri güncellemek için veri betiğini çalıştır."
+          />
           <Link href="/piyasa" className="mt-3 inline-block text-sm text-primary hover:underline">Tüm haberler</Link>
         </section>
         <section className="glass-card p-5" aria-labelledby="company-title">

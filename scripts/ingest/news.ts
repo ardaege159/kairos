@@ -73,12 +73,13 @@ try {
     if (r.status === 402 || r.status === 429) { budgetHit = true; break; }
     if (!r.ok) throw new Error(`Marketaux HTTP ${r.status}`);
     const j = (await r.json()) as {
-      data: { uuid: string; title: string; description: string | null; url: string; image_url: string | null; source: string; published_at: string;
+      data: { uuid: string; title: string; description: string | null; url: string; image_url: string | null; source: string; published_at: string; language?: string;
         entities: { symbol: string; match_score: number; sentiment_score: number | null; type: string }[] }[];
       meta: { found: number; returned: number };
     };
     for (const a of j.data) {
       mxArticles++;
+      if (a.language && a.language !== "en") continue; // the language filter is not strict on Marketaux's side
       const linked = a.entities.filter((e) => tickers.has(e.symbol));
       const sectors = [...new Set(linked.map((e) => tickers.get(e.symbol)!.sector).filter((s): s is string => !!s))];
       const { topic } = classify(`${a.title} ${a.description ?? ""}`);

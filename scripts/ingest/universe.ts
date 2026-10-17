@@ -16,7 +16,10 @@ const db = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY.trim(), { 
 const SEC = { headers: { "User-Agent": "Kairos personal research (non-commercial)", "Accept-Encoding": "gzip, deflate" } };
 const EXCHANGES = new Set(["NASDAQ", "NYSE", "ARCA", "BATS", "AMEX"]);
 const EXCLUDE_NAME = /\b(warrants?|rights?|units?|preferred|depositary shares? representing|notes due|debentures|subordinated)\b/i;
-const ETF_NAME = /\b(ETF|ETN|ETP|fund|trust|iShares|SPDR|ProShares|Direxion|Invesco QQQ|Vanguard|WisdomTree|VanEck|Global X|Grayscale|Bitcoin|Ether)\b/i;
+// Strong ETF markers decide on their own; "fund"/"trust" alone only counts when SEC has no CIK for the
+// ticker (REITs like "Kite Realty Group Trust" and closed-end funds are SEC registrants -> stocks).
+const ETF_STRONG = /\b(ETF|ETN|ETP|iShares|SPDR|ProShares|Direxion|Invesco QQQ|Vanguard|WisdomTree|VanEck|Global X|First Trust|Grayscale|Bitcoin|Ether|Leveraged|Inverse|2X|3X)\b/i;
+const ETF_WEAK = /\b(fund|trust)\b/i;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 type Asset = { symbol: string; name: string; exchange: string; tradable: boolean; status: string };
@@ -62,7 +65,7 @@ try {
   for (const a of assets) {
     const core = coreRows.get(a.symbol);
     const cik = core ? Number(core.CIK) : cikByTicker.get(a.symbol) ?? null;
-    const etf = !core && (ETF_NAME.test(a.name) || (!cik && (a.exchange === "ARCA" || a.exchange === "BATS")));
+    const etf = !core && (ETF_STRONG.test(a.name) || (!cik && (ETF_WEAK.test(a.name) || a.exchange === "ARCA" || a.exchange === "BATS")));
     rows.push({
       ticker: a.symbol, cik: etf ? null : cik, name: core?.Security ?? a.name, sector: core?.["GICS Sector"] ?? null,
       sub_industry: core?.["GICS Sub-Industry"] || null, added_to_index: core && /^\d{4}-\d{2}-\d{2}/.test(core["Date added"] ?? "") ? core["Date added"].slice(0, 10) : null,
