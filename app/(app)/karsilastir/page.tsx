@@ -5,10 +5,11 @@ import { ArrowDown, ArrowUp, Check } from "lucide-react";
 import { ComparePicker } from "@/components/compare/compare-picker";
 import { MAX_COMPARE } from "@/lib/compare";
 import { PerformanceChart } from "@/components/compare/performance-chart";
+import { ScorePartsChart } from "@/components/compare/score-parts-chart";
 import { InfoTip } from "@/components/info-tip";
 import { PageHeader } from "@/components/page-header";
 import { SERIES } from "@/components/stocks/chart-theme";
-import { getPrices, listStocks, type StockRow } from "@/lib/data/stocks";
+import { getPrices, getStocks, type StockRow } from "@/lib/data/stocks";
 import { formatMetric, formatPercent, formatPrice } from "@/lib/format";
 import { GROUP_LABELS, GROUP_MEANINGS, METRICS, type MetricGroup } from "@/lib/metrics/definitions";
 import { SCORE_PARTS, type ScorePartKey } from "@/lib/score/weights";
@@ -57,17 +58,14 @@ function StockCard({ s, color }: { s: StockRow; color: string }) {
 
 async function Comparison({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const sp = await searchParams;
-  const all = await listStocks();
-  const byTicker = new Map(all.map((s) => [s.ticker, s]));
   const requested = typeof sp.h === "string" ? sp.h.split(",").map((t) => t.trim().toUpperCase()) : [];
-  const tickers = [...new Set(requested)].filter((t) => byTicker.has(t)).slice(0, MAX_COMPARE);
-  const stocks = tickers.map((t) => byTicker.get(t)!);
-  const prices = await Promise.all(stocks.map((s) => getPrices(s.ticker)));
-  const options = all.map((s) => ({ ticker: s.ticker, name: s.name }));
+  const stocks = await getStocks([...new Set(requested)].slice(0, MAX_COMPARE));
+  const tickers = stocks.map((s) => s.ticker);
+  const prices = await Promise.all(stocks.map((s) => getPrices(s.ticker, s.core)));
 
   return (
     <div className="flex flex-col gap-6">
-      <ComparePicker selected={tickers} options={options} />
+      <ComparePicker selected={tickers} />
 
       {stocks.length === 0 ? (
         <section className="glass-card max-w-[65ch] p-6">
@@ -102,6 +100,26 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
               </h2>
               <p className="mt-1 mb-4 text-sm text-ink-muted">Başlangıç noktası %0 olacak şekilde.</p>
               <PerformanceChart series={stocks.map((s, i) => ({ ticker: s.ticker, points: prices[i] }))} />
+            </section>
+          ) : null}
+
+          {stocks.some((s) => s.score != null) ? (
+            <section className="glass-card p-5" aria-labelledby="parts-title">
+              <h2 id="parts-title" className="flex items-center gap-1 font-semibold">
+                Kairos Skoru bölümleri
+                <InfoTip title="Skor bölümleri">
+                  Her bölüm hissenin kendi sektöründeki sırasıdır (0–100). Farklı sektörlerdeki hisselerde bu, “sektörüne göre ne
+                  kadar iyi” sorusunun cevabıdır; hisseleri birbirine doğrudan değil, kendi sektörlerine göre karşılaştırır.
+                </InfoTip>
+              </h2>
+              <p className="mt-1 mb-4 text-sm text-ink-muted">Yüksek çubuk, hissenin o konuda sektöründe daha iyi olduğunu gösterir. ETF&apos;lerin skoru yoktur.</p>
+              <ScorePartsChart
+                series={stocks.map((s, i) => ({ ticker: s.ticker, color: SERIES[i], scored: s.score != null })).filter((s) => s.scored)}
+                rows={(Object.keys(SCORE_PARTS) as ScorePartKey[]).filter((k) => SCORE_PARTS[k].weight > 0).map((k) => ({
+                  part: SCORE_PARTS[k].label,
+                  ...Object.fromEntries(stocks.filter((s) => s.score != null).map((s) => [s.ticker, s.score_parts[k] ?? null])),
+                }))}
+              />
             </section>
           ) : null}
 

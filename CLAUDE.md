@@ -13,35 +13,21 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 - Tasarım: `design/DESIGN.md` esas (Geist, cam efekti, primary `#4648d4`, secondary `#8127cf`). Stitch React export'undaki `#6366f1` yanlış, kullanma.
 - LLM Council yalnızca geliştirmede (kullanıcı isterse); üründe yok.
 
-## Veri kaynakları (hepsi spike'ta doğrulandı)
+## Veri kaynakları
 | Alan | Kaynak | Not |
 |---|---|---|
-| Bilanço | SEC EDGAR XBRL (`companyfacts`, `frames`) | Anahtarsız, User-Agent gerekli, 10 istek/sn. Gelir için `Revenues` + `RevenueFromContractWithCustomerExcludingAssessedTax` birleştir; yalnızca ~90 günlük dönemleri al (9 aylık kümülatifler karışık geliyor). |
-| Fiyat | Alpaca Market Data (`v2/stocks/bars`, `feed=sip`) | Ücretsiz planda son 15 dk hariç; tek istekte çok sembol. En yeni bar için `sort=desc`. |
-| Hisse haberi | Marketaux | 100 istek/gün, istek başı 3 makale; `entities[].symbol` + `sentiment_score` var. Sadece izleme listesi için. |
-| Global haber | GDELT DOC 2.0 | Anahtarsız; `sourcelang:english` ekle; istemcide retry şart. |
-| Federal harcama | USAspending API v2 | Anahtarsız ama yavaş (~15 sn); "Award Amount" ömür boyu toplam. Alıcı adı varyantları için `aliases` tablosu. |
-
-## Çalıştırma
-- Geliştirme: `npm run dev` (her sayfa ilk açılışta derlenir, yavaştır). Günlük kullanım: `npm run kullan` (build + production, sayfalar ~50 ms).
-
-## Next.js 16 notları
-- Cache Components açık: kullanıcıya özel veri `lib/data/*` içinde `await connection()` ile başlar; cookie/`usePathname` okuyan her şey `<Suspense>` içinde. `Date.now()`/`new Date()` render sırasında kullanma.
-- "use client" bir dosyadan sunucuya sabit/değer export etme (sunucu onu sayı değil referans olarak görür); paylaşılan sabitleri `lib/` altına koy.
-- Yeni dinamik route ekleyince `npx next typegen` (PageProps tipleri).
-
-## Kurallar
-- UI API'yi doğrudan çağırmaz: veri arka planda çekilip Supabase'e yazılır, sayfalar DB'den okur. Vercel Hobby cron günde 1 kez.
-- Sayılar (oranlar, skor) **kodla** hesaplanır; AI yalnızca yorum yazar. Skor ağırlıkları tek dosyada (`lib/score/weights.ts`).
-- Her sayfada "Yatırım tavsiyesi değildir" uyarısı.
-- Gizli anahtarlar `.env.local` içinde (gitignore'da); liste `.env.example`'da (Alpaca, Marketaux, FRED, Alpha Vantage, Supabase, OWNER_EMAIL). Anahtarları asla sohbette isteme, yazdırma veya commit'leme; kullanıcı dosyaya kendisi yapıştırır.
-- Supabase/Vercel'de proje veya kaynak oluşturmadan önce kullanıcıdan açık onay al.
-- Kaynak testleri: `node --env-file=.env.local scripts/spike/keys-spike.mjs` (anahtarsız olanlar: `scripts/spike/spike.mjs`).
+| Evren | Alpaca  (NASDAQ/NYSE/ARCA/BATS/AMEX; OTC, warrant, unit, preferred, yatırım fonu yok) + SEC  (CIK) + SEC submissions (SIC, DB'de önbellekli) | ; S&P dışı sektör =  (yaklaşık). ETF tespiti ada göre sezgisel. |
+| Bilanço | SEC XBRL  →  (cik, dönem, values jsonb) | Gelir iki etiket; mali yıl sonu çeyreği yıllıktan türetilir. |
+| Fiyat | Alpaca   | Sadece  (S&P+ekler) 'de; diğerleri hesapta bellekte, detay grafiği  ile anlık + önbellek. DB ücretsiz sınırı (500 MB) yüzünden. |
+| Şirket haberi | Marketaux (100 istek/gün, istek başı 3) | ; UI'de match_score ≥ 10. |
+| Küresel haber | RSS: CNBC, MarketWatch, Investing.com, FT, BBC |  ile konu/sektör; GDELT 429 ile IP kısıtladı, kullanılmıyor. |
+| Ekonomik takvim | FRED releases/dates + federalreserve.gov FOMC sayfası |  filtresi. |
+| Bilanço takvimi | Alpha Vantage EARNINGS_CALENDAR (günde 1 istek) | |
 
 ## Supabase
 - Proje: `kairos` (ref `jfyiuodilzjjtpfwyfjw`, eu-west-1, org `ntqsfcvauhmkwfqzyjxm`). URL ve publishable key `.env.local`'de. Eski duraklatılmış "ardaege159's Project" kullanılmıyor.
 
 ## Durum
 - Aşama 0 tamamlandı. Aşama 1: iskelet + tema + Türkçe menü + boş sayfalar (Bugün dahil) bitti (`phase-1-scaffold` dalı). Supabase Auth: e-posta+şifre girişi (şifre Ayarlar'dan belirlenir) ve yedek magic link; ( `/giris`, `proxy.ts`, `getOwner()` DAL, `OWNER_EMAIL` kısıtı); sahibin gerçek girişi test edilmedi. Kalan: tablolar gelince RLS, Supabase panelinde yeni kayıtları kapatmak, Vercel önizleme. Aşamaların listesi `PLAN.md`'de.
-- Aşama 2-3 bitti: SEC bilanço (~61 bin satır), Alpaca fiyat (503 hisse, ~1 yıl), `stock_metrics`/`sector_stats` (hesap: `lib/metrics/compute.ts`, testler `npm test`), Kairos Skoru v1 (haber bileşeni yok), sayfalar `/hisseler` ve `/hisseler/[ticker]`. Veri yenileme: `npm run veri:yukle` (hepsi) / `npm run veri:fiyat` (fiyat + metrik). Bilinen boşluklar: bankaların geliri, borç etiketi kapsamı (331/503), temettü yok, FAVÖK yok. Karşılaştır (`/karsilastir?h=AAPL,MSFT`, en fazla 4) ve Sektörler sayfaları bitti. Göstergelerin açıklamaları `lib/metrics/definitions.ts` (`meaning`) ve `components/info-tip.tsx`. Sıradaki: haberler + Bugün sayfası.
+- Bitti: tüm ABD hisseleri+ETF (~12 bin, sunucu tarafı sayfalama  view), hisse/ETF detay, Karşılaştır (arama kutusu  + ), Sektörler, Bugün, Piyasa ve haberler, hisse haberleri, Kairos Skoru haber bölümü. Veri:  (hepsi, ilk sefer ~40 dk), , . Sıradaki: Vercel + günlük cron, Panel sayfası, izleme listesi.
 - Stitch ekranlarının tam boy görüntüleri bekleniyor (`design/` klasörüne). Chrome uzantısı Stitch sekmesinde donuyor; tekrar denemek yerine kullanıcıdan görüntü iste.

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { InfoTip } from "@/components/info-tip";
 import { PageHeader } from "@/components/page-header";
 import { SectorReturnsChart } from "@/components/sectors/sector-returns-chart";
-import { getAllSectorStats, listStocks } from "@/lib/data/stocks";
+import { getAllSectorStats, listSp500 } from "@/lib/data/stocks";
 import { formatMetric, formatPercent } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
 import { sectorName } from "@/lib/sectors";
@@ -14,8 +14,7 @@ export const metadata: Metadata = { title: "Sektörler" };
 const COLUMNS = ["return_3m", "return_1y", "pe", "net_margin", "revenue_growth_yoy", "debt_to_equity"];
 
 async function SectorOverview() {
-  const [stocks, stats] = await Promise.all([listStocks(), getAllSectorStats()]);
-  const members = stocks.filter((s) => s.in_sp500);
+  const [members, stats] = await Promise.all([listSp500(), getAllSectorStats()]);
   const sectors = Object.keys(stats).map((sector) => {
     const inSector = members.filter((s) => s.sector === sector);
     const scored = inSector.filter((s) => s.score != null);

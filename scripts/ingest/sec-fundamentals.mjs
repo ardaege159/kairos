@@ -1,12 +1,11 @@
-// Ingest S&P 500 companies + quarterly fundamentals from SEC XBRL frames into Supabase.
+// Ingest quarterly fundamentals for every issuer in public.companies from SEC XBRL frames.
 //   node --env-file=.env.local scripts/ingest/sec-fundamentals.mjs            (writes to Supabase)
 //   node --env-file=.env.local scripts/ingest/sec-fundamentals.mjs --dry      (no DB; prints a summary)
 // Needs SUPABASE_SECRET_KEY for writes. Frames return one value per filer per calendar period;
 // flows use CYyyyyQn (3-month), balances use CYyyyyQnI (instant). Missing Q4 flows are derived
 // as annual (CYyyyy) minus Q1..Q3.
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
-import { parseCsv } from '../lib-csv.mjs';
 
 const DRY = process.argv.includes('--dry');
 const QUARTERS = Number(process.argv.find(a => a.startsWith('--quarters='))?.split('=')[1] ?? 12);
@@ -65,13 +64,18 @@ function recentQuarters(n) {
   return out.reverse();
 }
 
-const readList = (file) => parseCsv(readFileSync(new URL(`../../data/${file}`, import.meta.url), 'utf8'));
-const sp500 = readList('sp500-constituents.csv');
-const sp500Tickers = new Set(sp500.map(c => c.Symbol));
-// Owner-tracked tickers outside the index (data/extra-tickers.csv); skipped if already in the S&P 500.
-const extras = readList('extra-tickers.csv').filter(c => !sp500Tickers.has(c.Symbol));
-const companies = [...sp500, ...extras];
-const ciks = new Set(companies.map(c => Number(c.CIK)));
+const secret = process.env.SUPABASE_SECRET_KEY?.trim();
+if (!secret) { console.error('SUPABASE_SECRET_KEY eksik (.env.local).'); process.exit(1); }
+const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, secret, { auth: { persistSession: false } });
+
+// Every issuer in the universe (built by scripts/ingest/universe.ts).
+const ciks = new Set();
+for (let from = 0; ; from += 1000) {
+  const { data, error } = await db.from('companies').select('cik').not('cik', 'is', null).range(from, from + 999);
+  if (error) throw error;
+  for (const r of data) ciks.add(r.cik);
+  if (data.length < 1000) break;
+}
 const quarters = recentQuarters(QUARTERS);
 const rows = new Map(); // key cik|period|metric -> row
 const put = (row) => rows.set(`${row.cik}|${row.period}|${row.metric}`, row);
@@ -155,28 +159,26 @@ if (DRY) {
   process.exit(0);
 }
 
-const secret = process.env.SUPABASE_SECRET_KEY?.trim();
-if (!secret) { console.error('SUPABASE_SECRET_KEY eksik (.env.local). Yazma yapılmadı.'); process.exit(1); }
-const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, secret, { auth: { persistSession: false } });
-
 const { data: run } = await db.from('ingest_runs').insert({ source: 'sec_frames' }).select('id').single();
 try {
-  const companyRows = companies.map(c => ({
-    ticker: c.Symbol, cik: Number(c.CIK), name: c.Security, sector: c['GICS Sector'], sub_industry: c['GICS Sub-Industry'] || null,
-    added_to_index: /^\d{4}-\d{2}-\d{2}/.test(c['Date added'] ?? '') ? c['Date added'].slice(0, 10) : null,
-    in_sp500: sp500Tickers.has(c.Symbol), updated_at: new Date().toISOString(),
-  }));
-  let e = (await db.from('companies').upsert(companyRows, { onConflict: 'ticker' })).error;
-  if (e) throw e;
-  e = (await db.from('companies').delete().not('ticker', 'in', `(${companyRows.map(c => `"${c.ticker}"`).join(',')})`)).error;
-  if (e) throw e;
-  for (let i = 0; i < all.length; i += 1000) {
-    const batch = all.slice(i, i + 1000).map(r => ({ ...r, fetched_at: new Date().toISOString() }));
-    const { error } = await db.from('fundamentals_quarterly').upsert(batch, { onConflict: 'cik,period,metric' });
+  // Compact storage: one row per issuer and quarter with all metrics in a JSON object.
+  const byKey = new Map();
+  for (const r of all) {
+    const k = `${r.cik}|${r.period}`;
+    const row = byKey.get(k) ?? { cik: r.cik, period: r.period, period_end: r.period_end, values: {}, sources: {}, fetched_at: new Date().toISOString() };
+    row.values[r.metric] = r.value;
+    row.sources[r.metric] = r.source_tag;
+    if (r.period_end > row.period_end) row.period_end = r.period_end;
+    byKey.set(k, row);
+  }
+  const compact = [...byKey.values()];
+  for (let i = 0; i < compact.length; i += 1000) {
+    const { error } = await db.from('fundamentals_q').upsert(compact.slice(i, i + 1000), { onConflict: 'cik,period' });
     if (error) throw error;
   }
+  summary.compactRows = compact.length;
   await db.from('ingest_runs').update({ status: 'ok', finished_at: new Date().toISOString(), detail: summary }).eq('id', run.id);
-  console.log(`yazıldı: ${companyRows.length} şirket, ${all.length} bilanço satırı`);
+  console.log(`yazıldı: ${compact.length} çeyrek satırı (${ciks.size} şirket)`);
 } catch (err) {
   await db.from('ingest_runs').update({ status: 'error', finished_at: new Date().toISOString(), detail: { ...summary, error: String(err.message ?? err) } }).eq('id', run?.id);
   console.error('HATA:', err.message ?? err);

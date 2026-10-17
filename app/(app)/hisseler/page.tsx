@@ -1,38 +1,24 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PageHeader } from "@/components/page-header";
-import { StockTable, type StockListItem } from "@/components/stocks/stock-table";
-import { listStocks } from "@/lib/data/stocks";
-import { formatDate } from "@/lib/format";
-import { sectorName } from "@/lib/sectors";
+import { StockTable } from "@/components/stocks/stock-table";
+import { PAGE_SIZE, SORT_KEYS, searchStocks, type SortKey, type Universe } from "@/lib/data/stocks";
+import { SECTOR_TR, sectorName } from "@/lib/sectors";
 
 export const metadata: Metadata = { title: "Hisseler" };
 
-async function StockList({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+type Params = Promise<Record<string, string | string[] | undefined>>;
+const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : undefined);
+
+async function StockList({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
-  const initialSector = typeof sp.sektor === "string" ? sp.sektor : "";
-  const stocks = await listStocks();
-  const items: StockListItem[] = stocks.map((s) => ({
-    ticker: s.ticker,
-    name: s.name,
-    sector: s.sector,
-    extra: !s.in_sp500,
-    price: s.price,
-    change_1d: s.change_1d,
-    market_cap: s.metrics.market_cap ?? null,
-    pe: s.metrics.pe ?? null,
-    pb: s.metrics.pb ?? null,
-    return_1y: s.metrics.return_1y ?? null,
-    score: s.score,
-  }));
-  const sectors = [...new Set(stocks.map((s) => s.sector))].sort((a, b) => sectorName(a).localeCompare(sectorName(b), "tr"));
-  const asOf = stocks.map((s) => s.as_of).filter(Boolean).sort().at(-1);
-  return (
-    <>
-      {asOf ? <p className="-mt-4 mb-4 text-xs text-ink-muted">Fiyatlar {formatDate(asOf)} kapanışı.</p> : null}
-      <StockTable stocks={items} sectors={sectors} initialSector={initialSector} />
-    </>
-  );
+  const sort = (SORT_KEYS as readonly string[]).includes(one(sp.sirala) ?? "") ? (one(sp.sirala) as SortKey) : "market_cap";
+  const dir = one(sp.yon) === "asc" ? "asc" : one(sp.yon) === "desc" ? "desc" : sort === "ticker" ? "asc" : "desc";
+  const universe = (["sp500", "hisse", "etf"] as const).find((u) => u === one(sp.evren)) ?? ("tumu" as Universe);
+  const page = Math.max(1, Number(one(sp.sayfa)) || 1);
+  const { rows, total } = await searchStocks({ q: one(sp.q), sector: one(sp.sektor), universe, sort, dir, page });
+  const sectors = Object.keys(SECTOR_TR).sort((a, b) => sectorName(a).localeCompare(sectorName(b), "tr"));
+  return <StockTable rows={rows} total={total} page={page} pageSize={PAGE_SIZE} sectors={sectors} sort={sort} dir={dir} />;
 }
 
 export default function HisselerPage({ searchParams }: PageProps<"/hisseler">) {
@@ -40,7 +26,7 @@ export default function HisselerPage({ searchParams }: PageProps<"/hisseler">) {
     <>
       <PageHeader
         title="Hisseler"
-        description="S&P 500 şirketleri ve izlemek için eklediğin hisseler. Bir hisseye tıklayınca çeyreklik bilançoları ve sektör karşılaştırmasını görürsün."
+        description="Borsada işlem gören tüm ABD hisseleri ve ETF'ler. S&P 500 dışındaki şirketler de SEC'e bilanço verdikçe aynı ayrıntıda görünür; ETF'lerde yalnızca fiyat verisi vardır."
       />
       <Suspense fallback={<div className="glass-card h-96 animate-pulse" aria-label="Hisseler yükleniyor" />}>
         <StockList searchParams={searchParams} />

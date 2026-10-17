@@ -1,4 +1,4 @@
-// Load daily split-adjusted bars for all S&P 500 tickers from Alpaca (SIP feed; free plan
+// Load daily split-adjusted bars for core tickers (S&P 500 + owner extras) from Alpaca (SIP feed; free plan
 // allows history up to ~15 min ago) into public.prices_daily.
 //   node --env-file=.env.local scripts/ingest/alpaca-prices.mjs [--days=400]
 import { createClient } from '@supabase/supabase-js';
@@ -24,7 +24,8 @@ async function alpaca(url) {
   throw new Error('Alpaca: tekrar denemeler tükendi');
 }
 
-const { data: companies, error } = await db.from('companies').select('ticker').order('ticker');
+// Only core tickers (S&P 500 + owner extras) keep stored daily bars; the rest are computed in memory.
+const { data: companies, error } = await db.from('companies').select('ticker').eq('core', true).order('ticker');
 if (error) throw error;
 const tickers = companies.map(c => c.ticker);
 const start = new Date(Date.now() - DAYS * 864e5).toISOString();

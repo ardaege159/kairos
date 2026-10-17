@@ -11,5 +11,5 @@ export const SCORE_PARTS: Record<ScorePartKey, { label: string; weight: number; 
   health: { label: "Finansal sağlık", weight: 15, metrics: ["debt_to_equity", "current_ratio"], meaning: "Borç yükü düşük ve kısa vadeli ödeme gücü yüksek mi. Yüksek puan = daha sağlam bilanço." },
   momentum: { label: "Momentum", weight: 10, metrics: ["return_3m", "return_1y"], meaning: "Hisse son 3 ay ve 1 yılda sektöründekilerden daha iyi mi performans gösterdi." },
   sector: { label: "Sektör yönü", weight: 10, metrics: [], meaning: "Hissenin sektörü son 3 ayda diğer sektörlere göre ne kadar iyi gitti. Aynı sektördeki tüm hisseler aynı puanı alır." }, // sector's 3-month median return ranked across sectors
-  news: { label: "Haber", weight: 0, metrics: [], meaning: "Hisse hakkındaki haberlerin genel tonu. Haber verisi bağlanınca devreye girecek." }, // Marketaux sentiment; enabled when the news pipeline lands
+  news: { label: "Haber", weight: 10, metrics: ["news_sentiment"], meaning: "Son 30 günde hisseyle eşleşen haberlerin ortalama tonu (Marketaux duygu analizi), sektöründeki diğer hisselerle karşılaştırmalı. En az 2 haber yoksa bu bölüm hesaplanmaz." },
 };

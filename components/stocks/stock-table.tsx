@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { formatMoney, formatMultiple, formatPercent, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
@@ -11,8 +12,8 @@ import { sectorName } from "@/lib/sectors";
 export type StockListItem = {
   ticker: string;
   name: string;
-  sector: string;
-  extra: boolean;
+  asset_type: "stock" | "etf";
+  in_sp500: boolean;
   price: number | null;
   change_1d: number | null;
   market_cap: number | null;
@@ -23,7 +24,6 @@ export type StockListItem = {
 };
 
 type SortKey = "ticker" | "price" | "change_1d" | "market_cap" | "pe" | "pb" | "return_1y" | "score";
-
 type Tip = { title: string; text: string; formula?: string };
 const metricTip = (key: string): Tip => {
   const d = METRIC_BY_KEY[key];
@@ -38,7 +38,14 @@ const COLUMNS: { key: SortKey; label: string; align: "left" | "right"; tip?: Tip
   { key: "pe", label: "F/K", align: "right", tip: metricTip("pe") },
   { key: "pb", label: "PD/DD", align: "right", tip: metricTip("pb") },
   { key: "return_1y", label: "1 yıl", align: "right", tip: metricTip("return_1y") },
-  { key: "score", label: "Kairos Skoru", align: "right", tip: { title: "Kairos Skoru", text: "Hisseyi kendi sektöründeki S&P 500 şirketleriyle karşılaştıran 0–100 arası özet. 50 sektör ortalamasıdır. Ayrıntısı hisse sayfasında." } },
+  { key: "score", label: "Kairos Skoru", align: "right", tip: { title: "Kairos Skoru", text: "Hisseyi kendi sektöründeki S&P 500 şirketleriyle karşılaştıran 0–100 arası özet. 50 sektör ortalamasıdır. ETF'lerde hesaplanmaz." } },
+];
+
+const UNIVERSES = [
+  { key: "tumu", label: "Tümü" },
+  { key: "sp500", label: "S&P 500" },
+  { key: "hisse", label: "Hisseler" },
+  { key: "etf", label: "ETF'ler" },
 ];
 
 function Change({ v }: { v: number | null }) {
@@ -52,44 +59,87 @@ function Change({ v }: { v: number | null }) {
   );
 }
 
-export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: StockListItem[]; sectors: string[]; initialSector?: string }) {
-  const [query, setQuery] = useState("");
-  const [sector, setSector] = useState(sectors.includes(initialSector) ? initialSector : "");
-  const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "market_cap", dir: -1 });
+/** Server-paginated list; every control writes to the URL so the server renders the next page. */
+export function StockTable({
+  rows,
+  total,
+  page,
+  pageSize,
+  sectors,
+  sort,
+  dir,
+}: {
+  rows: StockListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  sectors: string[];
+  sort: SortKey;
+  dir: "asc" | "desc";
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const [pending, start] = useTransition();
+  const [query, setQuery] = useState(params.get("q") ?? "");
 
-  const rows = useMemo(() => {
-    const q = query.trim().toLocaleLowerCase("tr");
-    const filtered = stocks.filter(
-      (s) =>
-        (!sector || s.sector === sector) &&
-        (!q || s.ticker.toLocaleLowerCase("tr").includes(q) || s.name.toLocaleLowerCase("tr").includes(q)),
-    );
-    return filtered.sort((a, b) => {
-      const av = a[sort.key], bv = b[sort.key];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1; // empty values always last
-      if (bv == null) return -1;
-      return (typeof av === "string" ? av.localeCompare(bv as string) : (av as number) - (bv as number)) * sort.dir;
-    });
-  }, [stocks, query, sector, sort]);
+  const update = (changes: Record<string, string | null>) => {
+    const next = new URLSearchParams(params.toString());
+    for (const [k, v] of Object.entries(changes)) {
+      if (v) next.set(k, v);
+      else next.delete(k);
+    }
+    if (!("sayfa" in changes)) next.delete("sayfa");
+    start(() => router.replace(`${pathname}?${next.toString()}`, { scroll: false }));
+  };
 
-  const toggle = (key: SortKey) =>
-    setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "ticker" ? 1 : -1 }));
+  // Debounced search-as-you-type.
+  useEffect(() => {
+    if ((params.get("q") ?? "") === query) return;
+    const t = setTimeout(() => update({ q: query.trim() || null }), 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only the typed text should trigger this
+  }, [query]);
+
+  const toggle = (key: SortKey) => {
+    const nextDir = sort === key ? (dir === "asc" ? "desc" : "asc") : key === "ticker" ? "asc" : "desc";
+    update({ sirala: key, yon: nextDir });
+  };
+
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  const from = total ? (page - 1) * pageSize + 1 : 0;
+  const to = Math.min(page * pageSize, total);
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className={`glass-card overflow-hidden transition-opacity ${pending ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-center gap-3 border-b border-outline-soft/50 p-4">
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Hisse kodu ya da şirket adı"
-          aria-label="Hisse ara"
+          aria-label="Listede ara"
           className="min-w-0 flex-1 rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
         />
+        <div role="group" aria-label="Kapsam" className="flex rounded-[var(--radius-control)] bg-surface-container/70 p-1">
+          {UNIVERSES.map((u) => {
+            const activeU = (params.get("evren") ?? "tumu") === u.key;
+            return (
+              <button
+                key={u.key}
+                type="button"
+                aria-pressed={activeU}
+                onClick={() => update({ evren: u.key === "tumu" ? null : u.key })}
+                className={`rounded-md px-3 py-1 text-xs font-medium ${activeU ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink"}`}
+              >
+                {u.label}
+              </button>
+            );
+          })}
+        </div>
         <select
-          value={sector}
-          onChange={(e) => setSector(e.target.value)}
+          value={params.get("sektor") ?? ""}
+          onChange={(e) => update({ sektor: e.target.value || null })}
           aria-label="Sektör"
           className="rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
         >
@@ -100,7 +150,7 @@ export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: St
             </option>
           ))}
         </select>
-        <span className="text-sm text-ink-muted num">{rows.length} hisse</span>
+        <span className="text-sm text-ink-muted num">{total.toLocaleString("tr-TR")} sonuç</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
@@ -111,7 +161,7 @@ export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: St
                   <span className="inline-flex items-center gap-0.5">
                     <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-ink">
                       {c.label}
-                      {sort.key === c.key ? (sort.dir === 1 ? <ArrowUp size={12} aria-label="artan" /> : <ArrowDown size={12} aria-label="azalan" />) : null}
+                      {sort === c.key ? (dir === "asc" ? <ArrowUp size={12} aria-label="artan" /> : <ArrowDown size={12} aria-label="azalan" />) : null}
                     </button>
                     {c.tip ? (
                       <InfoTip title={c.tip.title} formula={c.tip.formula} align={c.key === "score" || c.key === "return_1y" ? "end" : "start"}>
@@ -130,9 +180,9 @@ export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: St
                   <Link href={`/hisseler/${s.ticker}`} className="group flex flex-col">
                     <span className="flex items-center gap-1.5">
                       <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
-                      {s.extra ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">S&amp;P 500 dışı</span> : null}
+                      {s.asset_type === "etf" ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">ETF</span> : null}
                     </span>
-                    <span className="max-w-[16rem] truncate text-xs text-ink-muted">{s.name}</span>
+                    <span className="max-w-[18rem] truncate text-xs text-ink-muted">{s.name}</span>
                   </Link>
                 </td>
                 <td className="px-4 py-2.5 text-right">{formatPrice(s.price)}</td>
@@ -146,7 +196,33 @@ export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: St
             ))}
           </tbody>
         </table>
-        {rows.length === 0 ? <p className="p-6 text-sm text-ink-muted">Aramana uyan hisse yok. Filtreyi temizleyip tekrar dene.</p> : null}
+        {rows.length === 0 ? <p className="p-6 text-sm text-ink-muted">Aramana uyan hisse yok. Filtreleri temizleyip tekrar dene.</p> : null}
+      </div>
+      <div className="flex items-center justify-between border-t border-outline-soft/50 px-4 py-3 text-sm">
+        <span className="text-ink-muted num">
+          {from.toLocaleString("tr-TR")}–{to.toLocaleString("tr-TR")} / {total.toLocaleString("tr-TR")}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={page <= 1}
+            onClick={() => update({ sayfa: String(page - 1) })}
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-white/70 hover:text-ink disabled:opacity-40"
+          >
+            <ChevronLeft size={16} aria-hidden /> Önceki
+          </button>
+          <span className="num text-ink-muted">
+            {page} / {pages}
+          </span>
+          <button
+            type="button"
+            disabled={page >= pages}
+            onClick={() => update({ sayfa: String(page + 1) })}
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-white/70 hover:text-ink disabled:opacity-40"
+          >
+            Sonraki <ChevronRight size={16} aria-hidden />
+          </button>
+        </div>
       </div>
     </div>
   );
