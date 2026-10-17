@@ -38,4 +38,5 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Durum
 - Aşama 0 tamamlandı. Aşama 1: iskelet + tema + Türkçe menü + boş sayfalar (Bugün dahil) bitti (`phase-1-scaffold` dalı). Supabase Auth: e-posta+şifre girişi (şifre Ayarlar'dan belirlenir) ve yedek magic link; ( `/giris`, `proxy.ts`, `getOwner()` DAL, `OWNER_EMAIL` kısıtı); sahibin gerçek girişi test edilmedi. Kalan: tablolar gelince RLS, Supabase panelinde yeni kayıtları kapatmak, Vercel önizleme. Aşamaların listesi `PLAN.md`'de.
+- Aşama 2: şema + SEC yükleme bitti; Supabase'de 503 şirket, ~61 bin çeyreklik bilanço satırı (2023Q3–2026Q2). Yeniden yükleme: `node --env-file=.env.local scripts/ingest/sec-fundamentals.mjs` (SUPABASE_SECRET_KEY gerekir). Sıradaki: Alpaca fiyat yükleme + Hisseler listesi + hisse detay sayfası (çeyrek grafikleri, F/K, PD/DD).
 - Stitch ekranlarının tam boy görüntüleri bekleniyor (`design/` klasörüne). Chrome uzantısı Stitch sekmesinde donuyor; tekrar denemek yerine kullanıcıdan görüntü iste.
