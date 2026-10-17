@@ -9,7 +9,7 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 ## Kararlar (değiştirmeden önce sor)
 - Stack: Next.js (App Router, TypeScript) + Tailwind + Supabase (Postgres, Auth, RLS) + Vercel. Grafik: Recharts.
 - Erişim: Supabase e-posta girişi, yalnızca sahibi. Tüm tablolarda RLS.
-- Evren: S&P 500. Yalnızca ücretsiz veri kaynakları.
+- Evren: S&P 500 + kullanıcının ek hisseleri (`data/extra-tickers.csv`, `companies.in_sp500=false`; sektör istatistiklerine girmez, S&P sektör eşlerine göre sıralanır). Yalnızca ücretsiz veri kaynakları.
 - Tasarım: `design/DESIGN.md` esas (Geist, cam efekti, primary `#4648d4`, secondary `#8127cf`). Stitch React export'undaki `#6366f1` yanlış, kullanma.
 - LLM Council yalnızca geliştirmede (kullanıcı isterse); üründe yok.
 
@@ -27,6 +27,7 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Next.js 16 notları
 - Cache Components açık: kullanıcıya özel veri `lib/data/*` içinde `await connection()` ile başlar; cookie/`usePathname` okuyan her şey `<Suspense>` içinde. `Date.now()`/`new Date()` render sırasında kullanma.
+- "use client" bir dosyadan sunucuya sabit/değer export etme (sunucu onu sayı değil referans olarak görür); paylaşılan sabitleri `lib/` altına koy.
 - Yeni dinamik route ekleyince `npx next typegen` (PageProps tipleri).
 
 ## Kurallar
@@ -42,5 +43,5 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Durum
 - Aşama 0 tamamlandı. Aşama 1: iskelet + tema + Türkçe menü + boş sayfalar (Bugün dahil) bitti (`phase-1-scaffold` dalı). Supabase Auth: e-posta+şifre girişi (şifre Ayarlar'dan belirlenir) ve yedek magic link; ( `/giris`, `proxy.ts`, `getOwner()` DAL, `OWNER_EMAIL` kısıtı); sahibin gerçek girişi test edilmedi. Kalan: tablolar gelince RLS, Supabase panelinde yeni kayıtları kapatmak, Vercel önizleme. Aşamaların listesi `PLAN.md`'de.
-- Aşama 2-3 bitti: SEC bilanço (~61 bin satır), Alpaca fiyat (503 hisse, ~1 yıl), `stock_metrics`/`sector_stats` (hesap: `lib/metrics/compute.ts`, testler `npm test`), Kairos Skoru v1 (haber bileşeni yok), sayfalar `/hisseler` ve `/hisseler/[ticker]`. Veri yenileme: `npm run veri:yukle` (hepsi) / `npm run veri:fiyat` (fiyat + metrik). Bilinen boşluklar: bankaların geliri, borç etiketi kapsamı (331/503), temettü yok, FAVÖK yok. Sıradaki: Karşılaştır + Sektörler sayfaları, sonra haberler.
+- Aşama 2-3 bitti: SEC bilanço (~61 bin satır), Alpaca fiyat (503 hisse, ~1 yıl), `stock_metrics`/`sector_stats` (hesap: `lib/metrics/compute.ts`, testler `npm test`), Kairos Skoru v1 (haber bileşeni yok), sayfalar `/hisseler` ve `/hisseler/[ticker]`. Veri yenileme: `npm run veri:yukle` (hepsi) / `npm run veri:fiyat` (fiyat + metrik). Bilinen boşluklar: bankaların geliri, borç etiketi kapsamı (331/503), temettü yok, FAVÖK yok. Karşılaştır (`/karsilastir?h=AAPL,MSFT`, en fazla 4) ve Sektörler sayfaları bitti. Göstergelerin açıklamaları `lib/metrics/definitions.ts` (`meaning`) ve `components/info-tip.tsx`. Sıradaki: haberler + Bugün sayfası.
 - Stitch ekranlarının tam boy görüntüleri bekleniyor (`design/` klasörüne). Chrome uzantısı Stitch sekmesinde donuyor; tekrar denemek yerine kullanıcıdan görüntü iste.

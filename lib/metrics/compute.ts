@@ -134,7 +134,16 @@ export function percentiles(values: Map<string, number>, better: "higher" | "low
   return out;
 }
 
-export type ScoreInput = { sectorPct: Record<string, number>; sectorDirection: number | null };
+/** Position (0..1, 1 = better) of an outside value within a peer distribution; ties count half. */
+export function percentileOf(peers: number[], value: number, better: "higher" | "lower"): number | null {
+  if (!peers.length) return null;
+  const below = peers.filter((v) => v < value).length;
+  const equal = peers.filter((v) => v === value).length;
+  const p = (below + equal / 2) / peers.length;
+  return better === "higher" ? p : 1 - p;
+}
+
+export type ScoreInput ={ sectorPct: Record<string, number>; sectorDirection: number | null };
 
 export function kairosScore({ sectorPct, sectorDirection }: ScoreInput) {
   const parts: Partial<Record<ScorePartKey, number>> = {};

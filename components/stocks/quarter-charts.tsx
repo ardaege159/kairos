@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis, type TooltipContentProps } from "recharts";
+import { InfoTip } from "@/components/info-tip";
 import { formatMoney, formatPercent, formatPeriod } from "@/lib/format";
 import { AXIS, GRID, LOSS, SERIES } from "./chart-theme";
 
@@ -84,7 +85,14 @@ export function QuarterCharts({ data }: { data: QuarterPoint[] }) {
       <MoneyBars title="Çeyreklik gelir" data={data} dataKey="revenue" color={SERIES[0]} />
       <MoneyBars title="Çeyreklik net kâr" data={data} dataKey="net_income" color={SERIES[0]} />
       <section className="glass-card p-5">
-        <h3 className="mb-3 font-semibold">Marjlar</h3>
+        <h3 className="mb-3 flex items-center gap-1 font-semibold">
+          Marjlar
+          <InfoTip title="Marjlar" align="end">
+            Her 100 dolarlık satıştan kalan pay. Brüt marj üretim maliyetinden sonra, faaliyet marjı tüm işletme giderlerinden
+            sonra, net marj faiz ve vergi dahil her şeyden sonra kalanı gösterir. Çizgilerin yükselmesi şirketin daha kârlı
+            çalıştığını gösterir.
+          </InfoTip>
+        </h3>
         {margins.length ? (
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">

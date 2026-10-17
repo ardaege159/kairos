@@ -6,6 +6,7 @@ import {
   SCORED_METRICS,
   fundamentalMetrics,
   kairosScore,
+  percentileOf,
   percentiles,
   priceMetrics,
   quantile,
@@ -39,7 +40,7 @@ async function selectAll<T>(table: string, columns: string, filter?: (q: Query) 
 
 const { data: run } = await db.from("ingest_runs").insert({ source: "compute_metrics" }).select("id").single();
 try {
-  const companies = await selectAll<{ ticker: string; cik: number; sector: string }>("companies", "ticker,cik,sector");
+  const companies = await selectAll<{ ticker: string; cik: number; sector: string; in_sp500: boolean }>("companies", "ticker,cik,sector,in_sp500");
   const facts = await selectAll<{ cik: number; period: string; metric: string; value: number }>(
     "fundamentals_quarterly", "cik,period,metric,value", (q) => q.order("cik").order("period").order("metric"));
   const since = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
@@ -61,20 +62,22 @@ try {
     bars.set(p.ticker, list);
   }
 
-  type Row = { ticker: string; sector: string; asOf: string | null; period: string | null; price: number | null; change1d: number | null; metrics: Metrics };
+  type Row = { ticker: string; sector: string; member: boolean; asOf: string | null; period: string | null; price: number | null; change1d: number | null; metrics: Metrics };
   const rows: Row[] = companies.map((c) => {
     const b = bars.get(c.ticker) ?? [];
     const { price, change_1d, ...pm } = priceMetrics(b);
     const { period, metrics: fm } = fundamentalMetrics(fundamentals.get(c.cik) ?? new Map(), price);
-    return { ticker: c.ticker, sector: c.sector, asOf: b.at(-1)?.date ?? null, period, price, change1d: change_1d, metrics: { ...fm, ...pm } };
+    return { ticker: c.ticker, sector: c.sector, member: c.in_sp500, asOf: b.at(-1)?.date ?? null, period, price, change1d: change_1d, metrics: { ...fm, ...pm } };
   });
 
-  // Sector distributions and within-sector percentiles.
+  // Sector distributions and within-sector percentiles come from S&P 500 members only;
+  // extra tickers are then placed within their sector's member distribution.
   const sectors = [...new Set(rows.map((r) => r.sector))];
   const sectorStats: { sector: string; metric: string; median: number | null; p25: number | null; p75: number | null; n: number }[] = [];
   const pct = new Map<string, Record<string, number>>(rows.map((r) => [r.ticker, {}]));
   for (const sector of sectors) {
-    const inSector = rows.filter((r) => r.sector === sector);
+    const inSector = rows.filter((r) => r.sector === sector && r.member);
+    const outsiders = rows.filter((r) => r.sector === sector && !r.member);
     for (const def of METRICS) {
       const vals = new Map<string, number>();
       for (const r of inSector) {
@@ -83,7 +86,14 @@ try {
       }
       const sorted = [...vals.values()].sort((a, b) => a - b);
       sectorStats.push({ sector, metric: def.key, median: quantile(sorted, 0.5), p25: quantile(sorted, 0.25), p75: quantile(sorted, 0.75), n: sorted.length });
-      if (def.better && vals.size >= 3) for (const [t, p] of percentiles(vals, def.better)) pct.get(t)![def.key] = p;
+      if (def.better && vals.size >= 3) {
+        for (const [t, p] of percentiles(vals, def.better)) pct.get(t)![def.key] = p;
+        for (const r of outsiders) {
+          const v = r.metrics[def.key];
+          const p = v != null && Number.isFinite(v) ? percentileOf(sorted, v, def.better) : null;
+          if (p != null) pct.get(r.ticker)![def.key] = p;
+        }
+      }
     }
   }
   // Sector direction: each sector's median 3-month return, ranked across sectors.

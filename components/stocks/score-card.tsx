@@ -1,3 +1,4 @@
+import { InfoTip } from "@/components/info-tip";
 import { SCORE_PARTS, type ScorePartKey } from "@/lib/score/weights";
 
 function band(score: number) {
@@ -11,7 +12,14 @@ export function ScoreCard({ score, parts }: { score: number | null; parts: Recor
   const shown = (Object.keys(SCORE_PARTS) as ScorePartKey[]).filter((k) => SCORE_PARTS[k].weight > 0);
   return (
     <section className="glass-card flex flex-col p-5" aria-labelledby="score-title">
-      <h2 id="score-title" className="font-semibold">Kairos Skoru</h2>
+      <h2 id="score-title" className="flex items-center gap-1 font-semibold">
+        Kairos Skoru
+        <InfoTip title="Kairos Skoru" align="end">
+          Hisseyi kendi sektöründeki S&amp;P 500 şirketleriyle karşılaştıran 0–100 arası bir özet. Değerleme, karlılık, büyüme,
+          finansal sağlık, fiyat momentumu ve sektörün yönü ayrı ayrı puanlanıp ağırlıklı ortalaması alınır. 50 sektör
+          ortalaması demektir. Geçmişi özetler; geleceği tahmin etmez.
+        </InfoTip>
+      </h2>
       {score == null ? (
         <p className="mt-2 text-sm text-ink-muted">Skor için yeterli veri yok.</p>
       ) : (
@@ -40,7 +48,10 @@ export function ScoreCard({ score, parts }: { score: number | null; parts: Recor
               return (
                 <li key={k} className="text-sm">
                   <div className="flex justify-between">
-                    <span className="text-ink-muted">{SCORE_PARTS[k].label}</span>
+                    <span className="flex items-center gap-1 text-ink-muted">
+                      {SCORE_PARTS[k].label} <span className="text-xs">(ağırlık %{SCORE_PARTS[k].weight})</span>
+                      <InfoTip title={SCORE_PARTS[k].label}>{SCORE_PARTS[k].meaning}</InfoTip>
+                    </span>
                     <span className="font-medium num">{v ?? "—"}</span>
                   </div>
                   <div className="mt-1 h-1.5 rounded-full bg-surface-high" aria-hidden>

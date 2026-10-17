@@ -1,6 +1,8 @@
-import { GROUP_LABELS, METRICS, type MetricGroup } from "@/lib/metrics/definitions";
+import { InfoTip } from "@/components/info-tip";
+import { GROUP_LABELS, GROUP_MEANINGS, METRICS, type MetricGroup } from "@/lib/metrics/definitions";
 import { formatMetric } from "@/lib/format";
 import type { SectorStat } from "@/lib/data/stocks";
+import { sectorName } from "@/lib/sectors";
 
 const GROUPS: MetricGroup[] = ["valuation", "profitability", "growth", "health", "price"];
 
@@ -20,7 +22,7 @@ export function SectorCompare({
     <section className="glass-card p-5" aria-labelledby="sector-title">
       <h2 id="sector-title" className="font-semibold">Sektör karşılaştırması</h2>
       <p className="mt-1 text-sm text-ink-muted">
-        {sector} sektöründeki {stats.market_cap?.n ?? "—"} şirketle karşılaştırma. Konum çubuğu sağa doğru uzadıkça hisse
+        {sectorName(sector)} sektöründeki {stats.market_cap?.n ?? "—"} S&amp;P 500 şirketiyle karşılaştırma. Konum çubuğu sağa doğru uzadıkça hisse
         sektörüne göre daha iyi durumda.
       </p>
       <div className="mt-4 overflow-x-auto">
@@ -30,7 +32,15 @@ export function SectorCompare({
               <th scope="col" className="py-2 pr-4 font-medium">Gösterge</th>
               <th scope="col" className="py-2 pr-4 text-right font-medium">Hisse</th>
               <th scope="col" className="py-2 pr-4 text-right font-medium">Sektör medyanı</th>
-              <th scope="col" className="w-40 py-2 font-medium">Sektör içi konum</th>
+              <th scope="col" className="w-40 py-2 font-medium">
+                <span className="inline-flex items-center gap-1">
+                  Sektör içi konum
+                  <InfoTip title="Sektör içi konum" align="end">
+                    0–100 arası sıra. 80, hissenin bu göstergede sektöründeki şirketlerin %80&apos;inden daha iyi olduğu anlamına
+                    gelir. Değerleme ve borçta düşük olan, karlılık ve büyümede yüksek olan daha iyi sayılır.
+                  </InfoTip>
+                </span>
+              </th>
             </tr>
           </thead>
           {GROUPS.map((g) => {
@@ -39,16 +49,24 @@ export function SectorCompare({
               <tbody key={g} className="num">
                 <tr>
                   <th scope="rowgroup" colSpan={4} className="pt-4 pb-1 text-left text-xs font-semibold text-primary-strong">
-                    {GROUP_LABELS[g]}
+                    <span className="inline-flex items-center gap-1">
+                      {GROUP_LABELS[g]}
+                      <InfoTip title={GROUP_LABELS[g]}>{GROUP_MEANINGS[g]}</InfoTip>
+                    </span>
                   </th>
                 </tr>
                 {defs.map((d) => {
                   const p = pct[d.key];
                   return (
                     <tr key={d.key} className="border-t border-outline-soft/40">
-                      <th scope="row" className="py-2 pr-4 text-left font-normal" title={d.help}>
-                        {d.short ? `${d.short} ` : ""}
-                        <span className={d.short ? "text-ink-muted" : ""}>{d.short ? `(${d.label})` : d.label}</span>
+                      <th scope="row" className="py-2 pr-4 text-left font-normal">
+                        <span className="inline-flex items-center gap-1">
+                          <span>
+                            {d.short ? `${d.short} ` : ""}
+                            <span className={d.short ? "text-ink-muted" : ""}>{d.short ? `(${d.label})` : d.label}</span>
+                          </span>
+                          <InfoTip title={d.short ? `${d.short} (${d.label})` : d.label} formula={d.help}>{d.meaning}</InfoTip>
+                        </span>
                       </th>
                       <td className="py-2 pr-4 text-right font-medium">{formatMetric(metrics[d.key], d.format)}</td>
                       <td className="py-2 pr-4 text-right text-ink-muted">{formatMetric(stats[d.key]?.median, d.format)}</td>

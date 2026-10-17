@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   fundamentalMetrics,
   kairosScore,
+  percentileOf,
   percentiles,
   priceMetrics,
   quantile,
@@ -116,6 +117,13 @@ describe("percentiles and score", () => {
     expect(percentiles(vals, "higher").get("C")).toBe(1);
     expect(percentiles(vals, "lower").get("A")).toBe(1);
     expect(quantile([1, 2, 3, 4], 0.5)).toBe(2.5);
+  });
+
+  it("places an outside stock within its peers' distribution", () => {
+    expect(percentileOf([10, 20, 30, 40], 35, "higher")).toBeCloseTo(0.75);
+    expect(percentileOf([10, 20, 30, 40], 35, "lower")).toBeCloseTo(0.25);
+    expect(percentileOf([10, 20, 30, 40], 20, "higher")).toBeCloseTo(0.375);
+    expect(percentileOf([], 1, "higher")).toBeNull();
   });
 
   it("renormalises weights over available parts", () => {

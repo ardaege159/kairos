@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp } from "lucide-react";
+import { InfoTip } from "@/components/info-tip";
 import { PriceChart } from "@/components/stocks/price-chart";
 import { QuarterCharts, type QuarterPoint } from "@/components/stocks/quarter-charts";
 import { ScoreCard } from "@/components/stocks/score-card";
@@ -10,6 +11,7 @@ import { SectorCompare } from "@/components/stocks/sector-compare";
 import { getPrices, getQuarters, getSectorStats, getStock, type SectorStat } from "@/lib/data/stocks";
 import { formatDate, formatMetric, formatMoney, formatPercent, formatPeriod, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
+import { sectorName } from "@/lib/sectors";
 
 export async function generateMetadata({ params }: PageProps<"/hisseler/[ticker]">): Promise<Metadata> {
   const { ticker } = await params;
@@ -21,8 +23,11 @@ const KEY_STATS = ["market_cap", "pe", "pb", "ps", "eps_ttm", "net_margin", "roe
 function StatTile({ metric, value, stat }: { metric: string; value: number | undefined; stat?: SectorStat }) {
   const d = METRIC_BY_KEY[metric];
   return (
-    <div className="glass-card p-4" title={d.help}>
-      <p className="text-xs text-ink-muted">{d.short ?? d.label}</p>
+    <div className="glass-card p-4">
+      <p className="flex items-center gap-1 text-xs text-ink-muted">
+        {d.short ?? d.label}
+        <InfoTip title={d.short ? `${d.short} (${d.label})` : d.label} formula={d.help}>{d.meaning}</InfoTip>
+      </p>
       <p className="mt-1 text-xl font-semibold num">{formatMetric(value, d.format)}</p>
       <p className="mt-1 text-xs text-ink-muted num">Sektör: {formatMetric(stat?.median, d.format)}</p>
     </div>
@@ -55,9 +60,18 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-10">{stock.name}</h1>
             <span className="rounded-[var(--radius-control)] bg-surface-container px-2 py-1 text-sm font-semibold">{stock.ticker}</span>
+            {!stock.in_sp500 ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-outline-soft px-2 py-0.5 text-xs text-ink-muted">
+                S&amp;P 500 dışı
+                <InfoTip title="S&P 500 dışı hisse">
+                  Bu hisseyi sen izleme için ekledin. Sektör karşılaştırması ve skor, aynı sektördeki S&amp;P 500 şirketlerine göre
+                  yapılır; bu hisse sektör ortalamalarını değiştirmez.
+                </InfoTip>
+              </span>
+            ) : null}
           </div>
           <p className="mt-1 text-sm text-ink-muted">
-            {stock.sector}
+            {sectorName(stock.sector)}
             {stock.sub_industry ? `, ${stock.sub_industry}` : ""}
           </p>
         </div>

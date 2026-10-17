@@ -65,7 +65,12 @@ function recentQuarters(n) {
   return out.reverse();
 }
 
-const companies = parseCsv(readFileSync(new URL('../../data/sp500-constituents.csv', import.meta.url), 'utf8'));
+const readList = (file) => parseCsv(readFileSync(new URL(`../../data/${file}`, import.meta.url), 'utf8'));
+const sp500 = readList('sp500-constituents.csv');
+const sp500Tickers = new Set(sp500.map(c => c.Symbol));
+// Owner-tracked tickers outside the index (data/extra-tickers.csv); skipped if already in the S&P 500.
+const extras = readList('extra-tickers.csv').filter(c => !sp500Tickers.has(c.Symbol));
+const companies = [...sp500, ...extras];
 const ciks = new Set(companies.map(c => Number(c.CIK)));
 const quarters = recentQuarters(QUARTERS);
 const rows = new Map(); // key cik|period|metric -> row
@@ -158,7 +163,8 @@ const { data: run } = await db.from('ingest_runs').insert({ source: 'sec_frames'
 try {
   const companyRows = companies.map(c => ({
     ticker: c.Symbol, cik: Number(c.CIK), name: c.Security, sector: c['GICS Sector'], sub_industry: c['GICS Sub-Industry'] || null,
-    added_to_index: /^\d{4}-\d{2}-\d{2}/.test(c['Date added']) ? c['Date added'].slice(0, 10) : null, updated_at: new Date().toISOString(),
+    added_to_index: /^\d{4}-\d{2}-\d{2}/.test(c['Date added'] ?? '') ? c['Date added'].slice(0, 10) : null,
+    in_sp500: sp500Tickers.has(c.Symbol), updated_at: new Date().toISOString(),
   }));
   let e = (await db.from('companies').upsert(companyRows, { onConflict: 'ticker' })).error;
   if (e) throw e;

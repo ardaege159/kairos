@@ -8,6 +8,7 @@ export type StockRow = {
   sector: string;
   sub_industry: string | null;
   cik: number;
+  in_sp500: boolean;
   price: number | null;
   change_1d: number | null;
   as_of: string | null;
@@ -31,14 +32,14 @@ async function db() {
 }
 
 type Joined = {
-  ticker: string; name: string; sector: string; sub_industry: string | null; cik: number;
-  stock_metrics: Omit<StockRow, "ticker" | "name" | "sector" | "sub_industry" | "cik"> | null;
+  ticker: string; name: string; sector: string; sub_industry: string | null; cik: number; in_sp500: boolean;
+  stock_metrics: Omit<StockRow, "ticker" | "name" | "sector" | "sub_industry" | "cik" | "in_sp500"> | null;
 };
 
 function flatten(r: Joined): StockRow {
   const m = r.stock_metrics;
   return {
-    ticker: r.ticker, name: r.name, sector: r.sector, sub_industry: r.sub_industry, cik: r.cik,
+    ticker: r.ticker, name: r.name, sector: r.sector, sub_industry: r.sub_industry, cik: r.cik, in_sp500: r.in_sp500,
     price: m?.price != null ? Number(m.price) : null,
     change_1d: m?.change_1d != null ? Number(m.change_1d) : null,
     as_of: m?.as_of ?? null, latest_period: m?.latest_period ?? null,
@@ -48,7 +49,7 @@ function flatten(r: Joined): StockRow {
 }
 
 const STOCK_SELECT =
-  "ticker,name,sector,sub_industry,cik,stock_metrics(price,change_1d,as_of,latest_period,metrics,sector_pct,score,score_parts)";
+  "ticker,name,sector,sub_industry,cik,in_sp500,stock_metrics(price,change_1d,as_of,latest_period,metrics,sector_pct,score,score_parts)";
 
 export async function listStocks(): Promise<StockRow[]> {
   const supabase = await db();
@@ -71,6 +72,23 @@ export async function getSectorStats(sector: string): Promise<Record<string, Sec
   return Object.fromEntries(
     (data ?? []).map((s) => [s.metric, { ...s, median: s.median == null ? null : Number(s.median), p25: s.p25 == null ? null : Number(s.p25), p75: s.p75 == null ? null : Number(s.p75) }]),
   );
+}
+
+/** sector -> metric -> distribution, for every sector. */
+export async function getAllSectorStats(): Promise<Record<string, Record<string, SectorStat>>> {
+  const supabase = await db();
+  const { data, error } = await supabase.from("sector_stats").select("sector,metric,median,p25,p75,n");
+  if (error) throw error;
+  const out: Record<string, Record<string, SectorStat>> = {};
+  for (const s of data ?? []) {
+    (out[s.sector] ??= {})[s.metric] = {
+      metric: s.metric, n: s.n,
+      median: s.median == null ? null : Number(s.median),
+      p25: s.p25 == null ? null : Number(s.p25),
+      p75: s.p75 == null ? null : Number(s.p75),
+    };
+  }
+  return out;
 }
 
 export async function getQuarters(cik: number): Promise<QuarterRow[]> {

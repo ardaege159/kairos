@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { InfoTip } from "@/components/info-tip";
 import { formatMoney, formatMultiple, formatPercent, formatPrice } from "@/lib/format";
+import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
+import { sectorName } from "@/lib/sectors";
 
 export type StockListItem = {
   ticker: string;
   name: string;
   sector: string;
+  extra: boolean;
   price: number | null;
   change_1d: number | null;
   market_cap: number | null;
@@ -20,15 +24,21 @@ export type StockListItem = {
 
 type SortKey = "ticker" | "price" | "change_1d" | "market_cap" | "pe" | "pb" | "return_1y" | "score";
 
-const COLUMNS: { key: SortKey; label: string; align: "left" | "right" }[] = [
+type Tip = { title: string; text: string; formula?: string };
+const metricTip = (key: string): Tip => {
+  const d = METRIC_BY_KEY[key];
+  return { title: d.short ? `${d.short} (${d.label})` : d.label, text: d.meaning, formula: d.help };
+};
+
+const COLUMNS: { key: SortKey; label: string; align: "left" | "right"; tip?: Tip }[] = [
   { key: "ticker", label: "Hisse", align: "left" },
-  { key: "price", label: "Fiyat", align: "right" },
-  { key: "change_1d", label: "Günlük", align: "right" },
-  { key: "market_cap", label: "Piyasa değeri", align: "right" },
-  { key: "pe", label: "F/K", align: "right" },
-  { key: "pb", label: "PD/DD", align: "right" },
-  { key: "return_1y", label: "1 yıl", align: "right" },
-  { key: "score", label: "Kairos Skoru", align: "right" },
+  { key: "price", label: "Fiyat", align: "right", tip: { title: "Fiyat", text: "Son işlem gününün kapanış fiyatı. Veriler en az 15 dakika gecikmelidir." } },
+  { key: "change_1d", label: "Günlük", align: "right", tip: { title: "Günlük değişim", text: "Son kapanışın bir önceki işlem gününün kapanışına göre değişimi." } },
+  { key: "market_cap", label: "Piyasa değeri", align: "right", tip: metricTip("market_cap") },
+  { key: "pe", label: "F/K", align: "right", tip: metricTip("pe") },
+  { key: "pb", label: "PD/DD", align: "right", tip: metricTip("pb") },
+  { key: "return_1y", label: "1 yıl", align: "right", tip: metricTip("return_1y") },
+  { key: "score", label: "Kairos Skoru", align: "right", tip: { title: "Kairos Skoru", text: "Hisseyi kendi sektöründeki S&P 500 şirketleriyle karşılaştıran 0–100 arası özet. 50 sektör ortalamasıdır. Ayrıntısı hisse sayfasında." } },
 ];
 
 function Change({ v }: { v: number | null }) {
@@ -42,9 +52,9 @@ function Change({ v }: { v: number | null }) {
   );
 }
 
-export function StockTable({ stocks, sectors }: { stocks: StockListItem[]; sectors: string[] }) {
+export function StockTable({ stocks, sectors, initialSector = "" }: { stocks: StockListItem[]; sectors: string[]; initialSector?: string }) {
   const [query, setQuery] = useState("");
-  const [sector, setSector] = useState("");
+  const [sector, setSector] = useState(sectors.includes(initialSector) ? initialSector : "");
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "market_cap", dir: -1 });
 
   const rows = useMemo(() => {
@@ -86,7 +96,7 @@ export function StockTable({ stocks, sectors }: { stocks: StockListItem[]; secto
           <option value="">Tüm sektörler</option>
           {sectors.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {sectorName(s)}
             </option>
           ))}
         </select>
@@ -98,10 +108,17 @@ export function StockTable({ stocks, sectors }: { stocks: StockListItem[]; secto
             <tr className="text-ink-muted">
               {COLUMNS.map((c) => (
                 <th key={c.key} scope="col" className={`px-4 py-2.5 font-medium ${c.align === "right" ? "text-right" : "text-left"}`}>
-                  <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-ink">
-                    {c.label}
-                    {sort.key === c.key ? (sort.dir === 1 ? <ArrowUp size={12} aria-label="artan" /> : <ArrowDown size={12} aria-label="azalan" />) : null}
-                  </button>
+                  <span className="inline-flex items-center gap-0.5">
+                    <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-ink">
+                      {c.label}
+                      {sort.key === c.key ? (sort.dir === 1 ? <ArrowUp size={12} aria-label="artan" /> : <ArrowDown size={12} aria-label="azalan" />) : null}
+                    </button>
+                    {c.tip ? (
+                      <InfoTip title={c.tip.title} formula={c.tip.formula} align={c.key === "score" || c.key === "return_1y" ? "end" : "start"}>
+                        {c.tip.text}
+                      </InfoTip>
+                    ) : null}
+                  </span>
                 </th>
               ))}
             </tr>
@@ -111,7 +128,10 @@ export function StockTable({ stocks, sectors }: { stocks: StockListItem[]; secto
               <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-white/50">
                 <td className="px-4 py-2.5">
                   <Link href={`/hisseler/${s.ticker}`} className="group flex flex-col">
-                    <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
+                      {s.extra ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">S&amp;P 500 dışı</span> : null}
+                    </span>
                     <span className="max-w-[16rem] truncate text-xs text-ink-muted">{s.name}</span>
                   </Link>
                 </td>
