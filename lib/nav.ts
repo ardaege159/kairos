@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   ChartColumnBig,
   GitCompareArrows,
   Landmark,
@@ -13,6 +14,7 @@ export type NavItem = { href: string; label: string; icon: LucideIcon };
 
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Panel", icon: LayoutDashboard },
+  { href: "/bugun", label: "Bugün", icon: CalendarDays },
   { href: "/hisseler", label: "Hisseler", icon: ChartColumnBig },
   { href: "/karsilastir", label: "Karşılaştır", icon: GitCompareArrows },
   { href: "/sektorler", label: "Sektörler", icon: Shapes },

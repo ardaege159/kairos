@@ -14,6 +14,7 @@ Klasör şu an boş (yalnızca `.gitignore`, `design/DESIGN.md`, git init). Yeni
 4. ABD federal harcamaları (sözleşmeler) → **ilgili hisselerle eşleşmiş**.
 5. **Kairos Skoru** (0–100): çarpanlar + sektör yönü + haber/momentum.
 6. Karşılaştırma aracı, sektörler sayfası, panel (dashboard).
+7. **Bugün** sayfası: günün gelişmeleri (Marketaux + GDELT), bugün açıklanacak ABD verileri (FRED release dates + Fed toplantı takvimi), bugün bilanço açıklayacak S&P 500 şirketleri.
 
 ## Mimari
 - **Next.js (App Router, TypeScript) + Tailwind**, Geist `next/font`, grafikler **Recharts** (kurulumdan önce Context7 ile güncel API; grafik yaparken `dataviz` skill'i yüklenecek).
@@ -30,6 +31,8 @@ Klasör şu an boş (yalnızca `.gitignore`, `design/DESIGN.md`, git init). Yeni
 | Haber (hisse) | Marketaux (100 istek/gün, istek başı 3 makale) + SEC 8-K | Limit resmi sayfadan; varlık/ticker alanı **doğrulanacak** |
 | Haber (global) | GDELT DOC 2.0 (anahtarsız; hız sınırı resmi belgede yok, ~5 sn/istek varsayılacak) | Kullanım şartı **doğrulanacak** |
 | Federal harcama | USAspending API v2 `spending_by_award` (anahtarsız) | Resmi dokümandan limit doğrulanacak |
+| Ekonomik takvim | FRED `fred/releases/dates` (`include_release_dates_with_no_data=true` ile gelecek tarihler; ücretsiz anahtar gerekir) + FOMC tarihleri statik seed (federalreserve.gov) | Anahtar alınınca doğrulanacak; önemli veriler (TÜFE, istihdam, GSYH, PCE) filtrelenecek |
+| Bilanço takvimi | Aday: Alpha Vantage `EARNINGS_CALENDAR` (günde 1 istek, ücretsiz 25/gün) | Doğrulanmadı |
 | S&P 500 listesi + sektör (GICS) | Tek seferlik statik seed dosyası | Kaynak/lisans seçilecek |
 | Ticker↔CIK | SEC ticker eşleme dosyası | Doğrulanacak |
 | AI | `lib/llm` soyutlaması; varsayılan OpenRouter `:free` (günlük kota), değiştirilebilir | Anahtarı kullanıcı `.env`'ye koyar |
