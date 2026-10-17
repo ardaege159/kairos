@@ -44,6 +44,11 @@ Klasör şu an boş (yalnızca `.gitignore`, `design/DESIGN.md`, git init). Yeni
 - **Alpaca (fiyat) — SEÇİLDİ:** ücretsiz anahtarla `v2/stocks/bars` tek istekte 50 sembol × 7 günlük bar döndü (50/50, `BRK.B` dahil); `feed=sip` (tüm piyasa) ücretsiz planda 20 dk önceye kadar çalıştı → 500 hisse ≈ 10 istek/gün. 15 dk bar isteği de çalıştı; son barları almak için `sort=desc` kullanılmalı.
 - **Marketaux — doğrulandı:** her makalede `entities[].symbol`, `match_score` ve **`sentiment_score`** var → haber↔hisse eşleştirmesi ve skorun haber bileşeni doğrudan buradan.
 
+### Aşama 2 notları (2026-10-17)
+- S&P 500 listesi: `data/sp500-constituents.csv` (datasets/s-and-p-500-companies, ODC-PDDL; 503 hisse, 500 ihraççı, CIK + GICS sektörü). GOOGL/GOOG, FOXA/FOX, NWSA/NWS aynı CIK → bilanço CIK bazlı, hisse ticker bazlı.
+- Şema: `supabase/migrations/20261017000001_core_fundamentals.sql` (app_owner + is_owner() RLS, companies, fundamentals_quarterly, ingest_runs).
+- Yükleme: `scripts/ingest/sec-fundamentals.mjs` — 12 çeyrek, ~246 SEC isteği, ~100 sn, ~61 bin satır. Mali yıl sonu çeyreği yıllıktan türetiliyor (Apple FQ4 2024 doğrulandı). Kapsam: gelir 466/500 (bankalar/sigorta başka etiket kullanıyor → sonra), brüt kâr 195, EPS 482, özsermaye 499.
+
 ### Eşleştirme (haber/harcama → hisse)
 - Haber: Marketaux varlık etiketi varsa doğrudan; GDELT için sektör anahtar-kelime haritası + şirket adı eşleşmesi.
 - Harcama: alıcı adı normalize → S&P 500 şirket/yan kuruluş takma ad tablosu (`aliases`), her eşleşmede `confidence` ve elle düzeltme imkânı. Yanlış eşleşme riski arayüzde "tahmini eşleşme" etiketiyle belirtilir.
