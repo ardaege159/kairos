@@ -32,7 +32,7 @@ Klasör şu an boş (yalnızca `.gitignore`, `design/DESIGN.md`, git init). Yeni
 | Haber (global) | GDELT DOC 2.0 (anahtarsız; hız sınırı resmi belgede yok, ~5 sn/istek varsayılacak) | Kullanım şartı **doğrulanacak** |
 | Federal harcama | USAspending API v2 `spending_by_award` (anahtarsız) | Resmi dokümandan limit doğrulanacak |
 | Ekonomik takvim | FRED (anahtar çalışıyor: 2 haftada 391 kayıt; "FOMC Press Release" her gün listeleniyor → FOMC için statik takvim şart) `fred/releases/dates` (`include_release_dates_with_no_data=true` ile gelecek tarihler; ücretsiz anahtar gerekir) + FOMC tarihleri statik seed (federalreserve.gov) | Anahtar alınınca doğrulanacak; önemli veriler (TÜFE, istihdam, GSYH, PCE) filtrelenecek |
-| Bilanço takvimi | Aday: Alpha Vantage `EARNINGS_CALENDAR` (günde 1 istek, ücretsiz 25/gün) | Doğrulanmadı |
+| Bilanço takvimi | Alpha Vantage `EARNINGS_CALENDAR&horizon=3month` (günde 1 istek) | Doğrulandı: tek istekte CSV, 4.604 şirket; alanlar symbol,name,reportDate,fiscalDateEnding,estimate,currency,timeOfTheDay (pre/post-market, bazen boş). Şirket adlarında virgül var → gerçek CSV ayrıştırıcı şart |
 | S&P 500 listesi + sektör (GICS) | Tek seferlik statik seed dosyası | Kaynak/lisans seçilecek |
 | Ticker↔CIK | SEC ticker eşleme dosyası | Doğrulanacak |
 | AI | `lib/llm` soyutlaması; varsayılan OpenRouter `:free` (günlük kota), değiştirilebilir | Anahtarı kullanıcı `.env`'ye koyar |
