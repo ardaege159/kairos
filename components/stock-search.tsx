@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { TickerLogo } from "@/components/ticker-logo";
 import { formatPercent, formatPrice } from "@/lib/format";
 
 export type Suggestion = {
@@ -135,7 +136,8 @@ export function StockSearch({
                 onMouseEnter={() => setActive(i)}
                 className={`flex cursor-pointer items-center gap-3 px-3 py-2 text-sm ${i === active ? "bg-primary-soft/60" : ""}`}
               >
-                <span className="w-16 shrink-0 font-semibold">{s.ticker}</span>
+                <TickerLogo ticker={s.ticker} size={24} />
+                <span className="w-14 shrink-0 font-semibold">{s.ticker}</span>
                 <span className="min-w-0 flex-1 truncate text-ink-muted">{s.name}</span>
                 {s.asset_type === "etf" ? (
                   <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">ETF</span>

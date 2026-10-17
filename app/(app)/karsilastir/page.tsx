@@ -9,6 +9,7 @@ import { ScorePartsChart } from "@/components/compare/score-parts-chart";
 import { InfoTip } from "@/components/info-tip";
 import { PageHeader } from "@/components/page-header";
 import { SERIES } from "@/components/stocks/chart-theme";
+import { TickerLogo } from "@/components/ticker-logo";
 import { getPrices, getStocks, type StockRow } from "@/lib/data/stocks";
 import { formatMetric, formatPercent, formatPrice } from "@/lib/format";
 import { GROUP_LABELS, GROUP_MEANINGS, METRICS, type MetricGroup } from "@/lib/metrics/definitions";
@@ -34,6 +35,7 @@ function StockCard({ s, color }: { s: StockRow; color: string }) {
     <Link href={`/hisseler/${s.ticker}`} className="glass-card block p-5 hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} aria-hidden />
+        <TickerLogo ticker={s.ticker} size={28} />
         <span className="font-semibold">{s.ticker}</span>
         <span className="truncate text-sm text-ink-muted">{s.name}</span>
       </div>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowDown, ArrowLeft, ArrowUp } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
+import { TickerLogo } from "@/components/ticker-logo";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -80,6 +81,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
       <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3">
+            <TickerLogo ticker={stock.ticker} size={44} />
             <h1 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-10">{stock.name}</h1>
             <span className="rounded-[var(--radius-control)] bg-surface-container px-2 py-1 text-sm font-semibold">{stock.ticker}</span>
             {isEtf ? (

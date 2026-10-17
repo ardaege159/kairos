@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { X } from "lucide-react";
 import { StockSearch } from "@/components/stock-search";
 import { SERIES } from "@/components/stocks/chart-theme";
+import { TickerLogo } from "@/components/ticker-logo";
 import { MAX_COMPARE } from "@/lib/compare";
 
 export function ComparePicker({ selected }: { selected: string[] }) {
@@ -18,6 +19,7 @@ export function ComparePicker({ selected }: { selected: string[] }) {
         {selected.map((t, i) => (
           <span key={t} className="inline-flex items-center gap-2 rounded-full border border-outline-soft bg-white/70 py-1 pr-1 pl-3 text-sm font-semibold">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: SERIES[i] }} aria-hidden />
+            <TickerLogo ticker={t} size={20} />
             {t}
             <button
               type="button"

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ExternalLink } from "lucide-react";
+import { TickerLogo } from "@/components/ticker-logo";
 import { TOPIC_LABEL } from "@/lib/news/topics";
 import type { NewsItem } from "@/lib/data/news";
 
@@ -39,6 +40,7 @@ export function NewsList({ items, emptyText, now, showTickers = true }: { items:
             {showTickers
               ? n.tickers.slice(0, 6).map((t) => (
                   <Link key={t.ticker} href={`/hisseler/${t.ticker}`} className="inline-flex items-center gap-1 rounded-full bg-primary-soft/60 px-2 py-0.5 font-medium text-primary-strong hover:bg-primary-soft">
+                    <TickerLogo ticker={t.ticker} size={14} />
                     {t.ticker} <Sentiment v={t.sentiment} />
                   </Link>
                 ))

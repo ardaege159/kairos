@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { InfoTip } from "@/components/info-tip";
 import { PageHeader } from "@/components/page-header";
+import { TickerLogo } from "@/components/ticker-logo";
 import { SectorReturnsChart } from "@/components/sectors/sector-returns-chart";
 import { getAllSectorStats, listSp500 } from "@/lib/data/stocks";
 import { formatMetric, formatPercent } from "@/lib/format";
@@ -92,7 +93,8 @@ async function SectorOverview() {
                   <td className="py-2.5">
                     <span className="flex flex-wrap gap-1.5">
                       {s.top.map((t) => (
-                        <Link key={t.ticker} href={`/hisseler/${t.ticker}`} className="rounded-full bg-primary-soft/60 px-2 py-0.5 text-xs font-medium text-primary-strong hover:bg-primary-soft">
+                        <Link key={t.ticker} href={`/hisseler/${t.ticker}`} className="inline-flex items-center gap-1 rounded-full bg-primary-soft/60 px-2 py-0.5 text-xs font-medium text-primary-strong hover:bg-primary-soft">
+                          <TickerLogo ticker={t.ticker} size={16} />
                           {t.ticker} {t.score}
                         </Link>
                       ))}

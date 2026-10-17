@@ -5,6 +5,7 @@ import { InfoTip } from "@/components/info-tip";
 import { NewsList } from "@/components/news/news-list";
 import { TopicPulse } from "@/components/news/topic-pulse";
 import { PageHeader } from "@/components/page-header";
+import { TickerLogo } from "@/components/ticker-logo";
 import { FOMC_INFO, FOMC_RELEASE_ID, releaseInfo } from "@/lib/calendar/releases";
 import { getEarnings, getEconCalendar, getNews, requestTime, type EarningsEvent, type EconEvent } from "@/lib/data/news";
 import { formatMoney } from "@/lib/format";
@@ -65,8 +66,11 @@ function EarningsList({ events, today }: { events: EarningsEvent[]; today: strin
           </h3>
           <ul className="space-y-1">
             {list.slice(0, 8).map((e) => (
-              <li key={e.ticker} className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-2 text-sm">
-                <Link href={`/hisseler/${e.ticker}`} className="font-semibold hover:text-primary">{e.ticker}</Link>
+              <li key={e.ticker} className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-2 text-sm">
+                <Link href={`/hisseler/${e.ticker}`} className="flex items-center gap-2 font-semibold hover:text-primary">
+                  <TickerLogo ticker={e.ticker} size={22} />
+                  {e.ticker}
+                </Link>
                 <span className="truncate text-ink-muted">{e.name}</span>
                 <span className="text-right text-xs text-ink-muted num">
                   {e.time_of_day ? TIME_LABEL[e.time_of_day] ?? e.time_of_day : "Saat belirsiz"}
