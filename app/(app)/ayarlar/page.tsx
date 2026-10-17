@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { EmptyState, PageHeader } from "@/components/page-header";
 import { getOwner } from "@/lib/supabase/server";
+import { PasswordForm } from "./password-form";
 
 export const metadata: Metadata = { title: "Ayarlar" };
 
@@ -21,6 +22,13 @@ async function Account() {
           Çıkış yap
         </button>
       </form>
+      {owner ? (
+        <div className="mt-6 border-t border-outline-soft/60 pt-4">
+          <h3 className="text-sm font-semibold">Şifre</h3>
+          <p className="mt-1 text-sm text-ink-muted">Şifre belirlersen giriş için e-postana bağlantı gelmesini beklemezsin.</p>
+          <PasswordForm />
+        </div>
+      ) : null}
     </section>
   );
 }

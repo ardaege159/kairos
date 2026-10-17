@@ -18,7 +18,7 @@ export default function GirisPage({ searchParams }: PageProps<"/giris">) {
         </p>
         <h1 className="mt-6 text-lg font-semibold">Giriş yap</h1>
         <p className="mt-1 mb-6 text-sm text-ink-muted">
-          E-posta adresine tek kullanımlık bir giriş bağlantısı göndereceğiz. Şifre yok.
+          E-posta ve şifrenle gir. Şifren yoksa e-postana tek kullanımlık giriş bağlantısı gönderebiliriz.
         </p>
         <Suspense fallback={<LoginForm />}>
           <LoginFormWithParams searchParams={searchParams as Promise<{ hata?: string }>} />

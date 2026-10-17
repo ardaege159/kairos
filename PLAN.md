@@ -31,7 +31,7 @@ Klasör şu an boş (yalnızca `.gitignore`, `design/DESIGN.md`, git init). Yeni
 | Haber (hisse) | Marketaux (100 istek/gün, istek başı 3 makale) + SEC 8-K | Limit resmi sayfadan; varlık/ticker alanı **doğrulanacak** |
 | Haber (global) | GDELT DOC 2.0 (anahtarsız; hız sınırı resmi belgede yok, ~5 sn/istek varsayılacak) | Kullanım şartı **doğrulanacak** |
 | Federal harcama | USAspending API v2 `spending_by_award` (anahtarsız) | Resmi dokümandan limit doğrulanacak |
-| Ekonomik takvim | FRED `fred/releases/dates` (`include_release_dates_with_no_data=true` ile gelecek tarihler; ücretsiz anahtar gerekir) + FOMC tarihleri statik seed (federalreserve.gov) | Anahtar alınınca doğrulanacak; önemli veriler (TÜFE, istihdam, GSYH, PCE) filtrelenecek |
+| Ekonomik takvim | FRED (anahtar çalışıyor: 2 haftada 391 kayıt; "FOMC Press Release" her gün listeleniyor → FOMC için statik takvim şart) `fred/releases/dates` (`include_release_dates_with_no_data=true` ile gelecek tarihler; ücretsiz anahtar gerekir) + FOMC tarihleri statik seed (federalreserve.gov) | Anahtar alınınca doğrulanacak; önemli veriler (TÜFE, istihdam, GSYH, PCE) filtrelenecek |
 | Bilanço takvimi | Aday: Alpha Vantage `EARNINGS_CALENDAR` (günde 1 istek, ücretsiz 25/gün) | Doğrulanmadı |
 | S&P 500 listesi + sektör (GICS) | Tek seferlik statik seed dosyası | Kaynak/lisans seçilecek |
 | Ticker↔CIK | SEC ticker eşleme dosyası | Doğrulanacak |
