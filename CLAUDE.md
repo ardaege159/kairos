@@ -25,6 +25,10 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 ## Çalıştırma
 - Geliştirme: `npm run dev` (her sayfa ilk açılışta derlenir, yavaştır). Günlük kullanım: `npm run kullan` (build + production, sayfalar ~50 ms).
 
+## Next.js 16 notları
+- Cache Components açık: kullanıcıya özel veri `lib/data/*` içinde `await connection()` ile başlar; cookie/`usePathname` okuyan her şey `<Suspense>` içinde. `Date.now()`/`new Date()` render sırasında kullanma.
+- Yeni dinamik route ekleyince `npx next typegen` (PageProps tipleri).
+
 ## Kurallar
 - UI API'yi doğrudan çağırmaz: veri arka planda çekilip Supabase'e yazılır, sayfalar DB'den okur. Vercel Hobby cron günde 1 kez.
 - Sayılar (oranlar, skor) **kodla** hesaplanır; AI yalnızca yorum yazar. Skor ağırlıkları tek dosyada (`lib/score/weights.ts`).
@@ -38,5 +42,5 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Durum
 - Aşama 0 tamamlandı. Aşama 1: iskelet + tema + Türkçe menü + boş sayfalar (Bugün dahil) bitti (`phase-1-scaffold` dalı). Supabase Auth: e-posta+şifre girişi (şifre Ayarlar'dan belirlenir) ve yedek magic link; ( `/giris`, `proxy.ts`, `getOwner()` DAL, `OWNER_EMAIL` kısıtı); sahibin gerçek girişi test edilmedi. Kalan: tablolar gelince RLS, Supabase panelinde yeni kayıtları kapatmak, Vercel önizleme. Aşamaların listesi `PLAN.md`'de.
-- Aşama 2: şema + SEC yükleme bitti; Supabase'de 503 şirket, ~61 bin çeyreklik bilanço satırı (2023Q3–2026Q2). Yeniden yükleme: `node --env-file=.env.local scripts/ingest/sec-fundamentals.mjs` (SUPABASE_SECRET_KEY gerekir). Sıradaki: Alpaca fiyat yükleme + Hisseler listesi + hisse detay sayfası (çeyrek grafikleri, F/K, PD/DD).
+- Aşama 2-3 bitti: SEC bilanço (~61 bin satır), Alpaca fiyat (503 hisse, ~1 yıl), `stock_metrics`/`sector_stats` (hesap: `lib/metrics/compute.ts`, testler `npm test`), Kairos Skoru v1 (haber bileşeni yok), sayfalar `/hisseler` ve `/hisseler/[ticker]`. Veri yenileme: `npm run veri:yukle` (hepsi) / `npm run veri:fiyat` (fiyat + metrik). Bilinen boşluklar: bankaların geliri, borç etiketi kapsamı (331/503), temettü yok, FAVÖK yok. Sıradaki: Karşılaştır + Sektörler sayfaları, sonra haberler.
 - Stitch ekranlarının tam boy görüntüleri bekleniyor (`design/` klasörüne). Chrome uzantısı Stitch sekmesinde donuyor; tekrar denemek yerine kullanıcıdan görüntü iste.
