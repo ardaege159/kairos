@@ -35,7 +35,7 @@ function StockCard({ s, color }: { s: StockRow; color: string }) {
     <Link href={`/hisseler/${s.ticker}`} className="glass-card block p-5 hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} aria-hidden />
-        <TickerLogo ticker={s.ticker} size={28} />
+        <TickerLogo ticker={s.ticker} size={28} etf={s.asset_type === "etf"} />
         <span className="font-semibold">{s.ticker}</span>
         <span className="truncate text-sm text-ink-muted">{s.name}</span>
       </div>

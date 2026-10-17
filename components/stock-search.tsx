@@ -136,7 +136,7 @@ export function StockSearch({
                 onMouseEnter={() => setActive(i)}
                 className={`flex cursor-pointer items-center gap-3 px-3 py-2 text-sm ${i === active ? "bg-primary-soft/60" : ""}`}
               >
-                <TickerLogo ticker={s.ticker} size={24} />
+                <TickerLogo ticker={s.ticker} size={24} etf={s.asset_type === "etf"} />
                 <span className="w-14 shrink-0 font-semibold">{s.ticker}</span>
                 <span className="min-w-0 flex-1 truncate text-ink-muted">{s.name}</span>
                 {s.asset_type === "etf" ? (

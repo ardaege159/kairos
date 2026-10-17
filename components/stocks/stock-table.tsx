@@ -179,7 +179,7 @@ export function StockTable({
               <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-white/50">
                 <td className="px-4 py-2.5">
                   <Link href={`/hisseler/${s.ticker}`} className="group flex items-center gap-3">
-                    <TickerLogo ticker={s.ticker} size={30} />
+                    <TickerLogo ticker={s.ticker} size={30} etf={s.asset_type === "etf"} />
                     <span className="flex min-w-0 flex-col">
                       <span className="flex items-center gap-1.5">
                         <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>

@@ -13,10 +13,11 @@ const tint = (t: string) => TINTS[[...t].reduce((a, c) => a + c.charCodeAt(0), 0
  * so this is a plain <img>, not next/image). Falls back to a letter badge without a client ID or
  * when the image fails.
  */
-export function TickerLogo({ ticker, size = 28, className = "" }: { ticker: string; size?: number; className?: string }) {
+export function TickerLogo({ ticker, size = 28, etf = false, className = "" }: { ticker: string; size?: number; etf?: boolean; className?: string }) {
   const [failed, setFailed] = useState(false);
   const box = { width: size, height: size };
-  if (!CLIENT_ID || failed) {
+  // Brandfetch maps many small ETF tickers to unrelated brands (even people's photos), so ETFs use the badge.
+  if (!CLIENT_ID || failed || etf) {
     return (
       <span
         aria-hidden
