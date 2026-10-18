@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   CalendarDays,
   ChartColumnBig,
   GitCompareArrows,
@@ -16,6 +17,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Panel", icon: LayoutDashboard },
   { href: "/bugun", label: "Bugün", icon: CalendarDays },
   { href: "/hisseler", label: "Hisseler", icon: ChartColumnBig },
+  { href: "/portfoy", label: "Portföy", icon: Briefcase },
   { href: "/karsilastir", label: "Karşılaştır", icon: GitCompareArrows },
   { href: "/sektorler", label: "Sektörler", icon: Shapes },
   { href: "/piyasa", label: "Piyasa ve haberler", icon: Newspaper },

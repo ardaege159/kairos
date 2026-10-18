@@ -24,7 +24,7 @@ export function StockSearch({
   exclude = [],
   autoFocus = false,
 }: {
-  onSelect: (ticker: string) => void;
+  onSelect: (ticker: string, suggestion: Suggestion) => void;
   placeholder?: string;
   exclude?: string[];
   autoFocus?: boolean;
@@ -72,7 +72,7 @@ export function StockSearch({
   }, []);
 
   const pick = (s: Suggestion) => {
-    onSelect(s.ticker);
+    onSelect(s.ticker, s);
     setQuery("");
     setItems([]);
     setOpen(false);
