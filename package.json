@@ -13,7 +13,8 @@
     "veri:fiyat": "node --env-file=.env.local scripts/ingest/alpaca-prices.mjs --days=10 && node --env-file=.env.local scripts/ingest/compute-metrics.ts",
     "veri:haber": "node --env-file=.env.local scripts/ingest/news.ts && node --env-file=.env.local scripts/ingest/calendars.ts",
     "veri:harcama": "node --env-file=.env.local scripts/ingest/spending.ts",
-    "veri:makro": "node --env-file=.env.local scripts/ingest/macro.ts"
+    "veri:makro": "node --env-file=.env.local scripts/ingest/macro.ts",
+    "veri:iceriden": "node --env-file=.env.local scripts/ingest/insiders.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

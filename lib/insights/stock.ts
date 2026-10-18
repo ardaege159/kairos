@@ -10,6 +10,7 @@ export type StockInput = {
   price: number | null;
   daysToEarnings: number | null;
   federal12m: number | null;
+  insiders?: { buyValue: number; sellValue: number; buyers: number; sellers: number; plannedSellShare: number | null } | null;
 };
 
 const pct = (v: number) => `%${(Math.abs(v) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}`;
@@ -96,6 +97,15 @@ export function stockPoints(s: StockInput): { pros: Point[]; cons: Point[]; watc
     detail: `${s.daysToEarnings <= 0 ? "Bugün" : `${s.daysToEarnings} gün sonra`} çeyrek sonuçları açıklanacak; fiyat sert hareket edebilir.` });
   if (s.federal12m != null && s.federal12m >= 1e9) watch.push({ key: "federal", title: "Gelirin bir kısmı devletten", strength: 0.5,
     detail: `Son 12 ayda ${money(s.federal12m)} federal sözleşme aldı. İstikrar sağlar ama bütçe kesintilerine duyarlıdır.` });
+  // Insiders (last 90 days, open market only)
+  const ins = s.insiders;
+  if (ins && ins.buyers >= 2 && ins.buyValue >= 250_000) pros.push({ key: "insiders", title: "Yöneticiler hisse alıyor", strength: Math.min(1, 0.6 + ins.buyers / 10),
+    detail: `Son 90 günde ${ins.buyers} yönetici ya da büyük ortak piyasadan toplam ${money(ins.buyValue)} hisse aldı. Şirketi en iyi tanıyanların kendi parasıyla alım yapması güven işaretidir.` });
+  else if (ins && ins.buyValue >= 1_000_000) pros.push({ key: "insiders", title: "Yönetici alımı", strength: 0.6,
+    detail: `Son 90 günde piyasadan ${money(ins.buyValue)} tutarında içeriden alım yapıldı.` });
+  if (ins && ins.sellers >= 3 && ins.buyValue === 0 && (ins.plannedSellShare ?? 1) < 0.5) watch.push({ key: "insider_sales", title: "Yöneticiler satıyor", strength: 0.55,
+    detail: `Son 90 günde ${ins.sellers} yönetici piyasada toplam ${money(ins.sellValue)} hisse sattı ve bunların çoğu önceden planlanmış değildi. Satışların birçok sıradan nedeni olabilir; tek başına olumsuz değildir.` });
+
   if (!has("pe") && !has("net_margin")) watch.push({ key: "data", title: "Bilanço verisi eksik", strength: 0.4,
     detail: "SEC verilerinde temel kalemler bulunamadı; değerlendirme yalnızca fiyat hareketine dayanıyor." });
 

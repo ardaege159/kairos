@@ -13,6 +13,9 @@ import { growth } from "@/lib/spending/trends";
 import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
 import { stockPoints } from "@/lib/insights/stock";
+import { InsiderTrades } from "@/components/stocks/insider-trades";
+import { getInsiderTrades } from "@/lib/data/insiders";
+import { summarize } from "@/lib/insiders/parse";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -62,7 +65,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -72,6 +75,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     getWatchlist(),
     isEtf ? Promise.resolve([]) : getCompanySpending({ tickers: [stock.ticker], limit: 1 }),
     isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8, sort: "date" }),
+    isEtf || !stock.core ? Promise.resolve(null) : getInsiderTrades(stock.ticker),
   ]);
   const federal = spending[0];
   const etfCategory = isEtf ? classifyEtf(stock.name) : null;
@@ -188,6 +192,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             price: stock.price,
             daysToEarnings: nextEarnings ? Math.round((Date.parse(`${nextEarnings.report_date}T00:00:00Z`) - now) / 864e5) : null,
             federal12m: federal?.amount ?? null,
+            insiders: insiders ? summarize(insiders.filter((t) => Date.parse(t.date) >= now - 90 * 864e5)) : null,
           })}
         />
       ) : null}
@@ -265,6 +270,8 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           </p>
         </section>
       ) : null}
+
+      {insiders ? <InsiderTrades trades={insiders} /> : null}
 
       {federal || spendingActions.length ? (
         <section className="glass-card mt-8 p-5" aria-labelledby="fed-title">

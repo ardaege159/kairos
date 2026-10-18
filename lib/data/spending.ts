@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { createClient, getOwner } from "@/lib/supabase/server";
+import { fiscalQuarterOf } from "@/lib/spending/trends";
 
 export type CompanySpending = {
   ticker: string; name: string; sector: string | null; amount: number; recipients: string[]; period_start: string; period_end: string;
@@ -88,7 +89,11 @@ export async function getSpendingThemes(): Promise<SpendingTheme[]> {
   const supabase = await db();
   const { data, error } = await supabase.from("spending_themes").select("key,quarters,amount_12m,amount_prev_12m,top_recipients,updated_at");
   if (error) throw error;
-  return (data ?? []).map((t) => ({ ...t, amount_12m: t.amount_12m == null ? null : Number(t.amount_12m), amount_prev_12m: t.amount_prev_12m == null ? null : Number(t.amount_prev_12m) })) as SpendingTheme[];
+  // Drop the fiscal quarter that was still in progress when the data was loaded (it is nearly empty).
+  return (data ?? []).map((t) => {
+    const now = fiscalQuarterOf(String(t.updated_at).slice(0, 10));
+    return { ...t, quarters: (t.quarters as { fy: number; q: number }[]).filter((x) => !(x.fy === now.fy && x.q === now.q)) };
+  }).map((t) => ({ ...t, amount_12m: t.amount_12m == null ? null : Number(t.amount_12m), amount_prev_12m: t.amount_prev_12m == null ? null : Number(t.amount_prev_12m) })) as SpendingTheme[];
 }
 
 export async function getSpendingIndustries(): Promise<SpendingIndustry[]> {

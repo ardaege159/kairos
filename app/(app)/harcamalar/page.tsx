@@ -51,7 +51,10 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
   const rankedThemes = themes
     .filter((t) => THEME_BY_KEY[t.key])
     .map((t) => ({ ...t, def: THEME_BY_KEY[t.key], g: growth(t.amount_12m, t.amount_prev_12m) }))
-    .sort((a, b) => (b.g ?? -9) - (a.g ?? -9));
+    // Growth first among themes of at least $1B a year; small themes (big % from a tiny base) after.
+    .sort((a, b) => Number((b.amount_12m ?? 0) >= 1e9) - Number((a.amount_12m ?? 0) >= 1e9) || (b.g ?? -9) - (a.g ?? -9));
+  // Headline only for themes big enough that the percentage means something.
+  const topTheme = rankedThemes.find((t) => (t.amount_12m ?? 0) >= 1e9);
   const movers = industries
     .map((i) => ({ ...i, g: growth(i.amount_12m, i.amount_prev_12m) }))
     .filter((i) => i.g != null && (i.amount_12m ?? 0) >= 1e9 && (i.amount_prev_12m ?? 0) >= 5e8);
@@ -87,10 +90,10 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
             En hızlı büyüyen tema
             <InfoTip title="Tema büyümesi">{LAG_NOTE}</InfoTip>
           </p>
-          {rankedThemes[0] ? (
+          {topTheme ? (
             <>
-              <Link href={`/harcamalar/tema/${rankedThemes[0].key}`} className="mt-1 block text-2xl font-bold hover:text-primary">{rankedThemes[0].def.name}</Link>
-              <p className="mt-1 text-sm text-ink-muted">yıllık <GrowthBadge value={rankedThemes[0].g} /></p>
+              <Link href={`/harcamalar/tema/${topTheme.key}`} className="mt-1 block text-2xl font-bold hover:text-primary">{topTheme.def.name}</Link>
+              <p className="mt-1 text-sm text-ink-muted">yıllık <GrowthBadge value={topTheme.g} /> · yılda en az 1 milyar $ olan temalar arasında</p>
             </>
           ) : <p className="mt-1 text-sm text-ink-muted">Tema verisi yüklenmedi.</p>}
         </section>
