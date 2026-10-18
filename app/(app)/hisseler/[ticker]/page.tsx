@@ -9,6 +9,8 @@ import { WatchButton } from "@/components/watch-button";
 import { getWatchlist } from "@/lib/data/watchlist";
 import { getCompanySpending, getSpendingActions } from "@/lib/data/spending";
 import { classifyEtf } from "@/lib/etf";
+import { ProsCons } from "@/components/stocks/pros-cons";
+import { stockPoints } from "@/lib/insights/stock";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -173,6 +175,20 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           ) : null}
         </div>
       </div>
+
+      {!isEtf ? (
+        <ProsCons
+          {...stockPoints({
+            metrics: stock.metrics,
+            pct: stock.sector_pct,
+            sectorMedian: Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, v.median])),
+            score: stock.score,
+            price: stock.price,
+            daysToEarnings: nextEarnings ? Math.round((Date.parse(`${nextEarnings.report_date}T00:00:00Z`) - now) / 864e5) : null,
+            federal12m: federal?.amount ?? null,
+          })}
+        />
+      ) : null}
 
       {isEtf && similar.length ? (
         <section className="glass-card mt-8 p-5" aria-labelledby="similar-title">
