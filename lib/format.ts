@@ -4,14 +4,14 @@ const num = (digits: number) =>
   new Intl.NumberFormat("tr-TR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
 
 /** 5.01e12 -> "5,01 Tn $", 812e6 -> "812 Mn $". */
-export function formatMoney(v: number | null | undefined): string {
+export function formatMoney(v: number | null | undefined, symbol: "$" | "₺" = "$"): string {
   if (v == null || !Number.isFinite(v)) return "—";
   const a = Math.abs(v);
   const sign = v < 0 ? "−" : "";
-  if (a >= 1e12) return `${sign}${num(2).format(a / 1e12)} Tn $`;
-  if (a >= 1e9) return `${sign}${num(a >= 1e11 ? 0 : 1).format(a / 1e9)} Mr $`;
-  if (a >= 1e6) return `${sign}${num(0).format(a / 1e6)} Mn $`;
-  return `${sign}${num(0).format(a)} $`;
+  if (a >= 1e12) return `${sign}${num(2).format(a / 1e12)} Tn ${symbol}`;
+  if (a >= 1e9) return `${sign}${num(a >= 1e11 ? 0 : 1).format(a / 1e9)} Mr ${symbol}`;
+  if (a >= 1e6) return `${sign}${num(a >= 1e8 ? 0 : 1).format(a / 1e6)} Mn ${symbol}`;
+  return `${sign}${num(0).format(a)} ${symbol}`;
 }
 
 export function formatPrice(v: number | null | undefined): string {

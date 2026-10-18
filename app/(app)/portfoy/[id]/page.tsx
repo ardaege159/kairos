@@ -11,6 +11,8 @@ import { ValueChart } from "@/components/portfolio/value-chart";
 import { TickerLogo } from "@/components/ticker-logo";
 import { requestTime } from "@/lib/data/news";
 import { analyze, getPortfolio } from "@/lib/data/portfolios";
+import { getSeries } from "@/lib/data/macro";
+import { benchmarkHistory, historyInTry, rateOn, tryBreakdown } from "@/lib/portfolio/currency";
 import { formatDate, formatMoney, formatPercent, formatPrice } from "@/lib/format";
 import { sectorName } from "@/lib/sectors";
 
@@ -37,14 +39,29 @@ function Bars({ title, rows }: { title: string; rows: { label: string; weight: n
   );
 }
 
-async function Detail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+async function Detail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const tl = sp.para === "tl";
   const portfolio = await getPortfolio(id);
   if (!portfolio) notFound();
-  const [a, now] = await Promise.all([analyze(portfolio.positions), requestTime()]);
+  const [a, now, rates] = await Promise.all([analyze(portfolio.positions), requestTime(), getSeries("USDTRY")]);
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(now));
   const { holdings: h } = a;
-  const up = h.pnl >= 0;
+  const prices = Object.fromEntries(h.rows.map((r) => [r.ticker, r.price]));
+  const fx = rates.length ? tryBreakdown(portfolio.positions, prices, rates, today) : null;
+  const sym = tl && fx ? "₺" : "$";
+  const bench = benchmarkHistory(portfolio.positions, a.history.map((p) => p.date), a.spy);
+  const historyUsd = a.history.map((p, i) => ({ ...p, benchmark: bench[i] }));
+  const history = sym === "₺"
+    ? historyInTry(portfolio.positions, a.history, rates).map((p, i) => ({ ...p, benchmark: bench[i] == null ? null : bench[i]! * (rateOn(rates, p.date) ?? 0) }))
+    : historyUsd;
+  const value = sym === "₺" ? fx!.valueTry : h.value;
+  const cost = sym === "₺" ? fx!.costTry : h.cost;
+  const pnl = value - cost;
+  const pnlPct = cost ? value / cost - 1 : null;
+  const up = pnl >= 0;
+  const lastBench = bench.at(-1);
+  const spyPnlPct = lastBench != null && a.history.at(-1)?.invested ? lastBench / a.history.at(-1)!.invested - 1 : null;
 
   const byTicker = new Map<string, number>();
   const bySector = new Map<string, number>();
@@ -66,14 +83,62 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-bold tracking-tight num">{formatMoney(h.value)}</p>
+          {fx ? (
+            <div role="group" aria-label="Para birimi" className="mb-2 inline-flex rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
+              <Link href={`/portfoy/${portfolio.id}`} aria-current={sym === "$" ? "true" : undefined}
+                className={`rounded-md px-3 py-1 font-medium ${sym === "$" ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>Dolar</Link>
+              <Link href={`/portfoy/${portfolio.id}?para=tl`} aria-current={sym === "₺" ? "true" : undefined}
+                className={`rounded-md px-3 py-1 font-medium ${sym === "₺" ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>TL</Link>
+            </div>
+          ) : null}
+          <p className="text-3xl font-bold tracking-tight num">{formatMoney(value, sym)}</p>
           {portfolio.positions.length ? (
             <p className={`text-sm font-medium num ${up ? "text-gain" : "text-loss"}`}>
-              {up ? "+" : "−"}{formatMoney(Math.abs(h.pnl))} ({formatPercent(h.pnlPct, true)}) · yatırılan {formatMoney(h.cost)}
+              {up ? "+" : "−"}{formatMoney(Math.abs(pnl), sym)} ({formatPercent(pnlPct, true)}) · yatırılan {formatMoney(cost, sym)}
             </p>
           ) : null}
         </div>
       </header>
+
+      {portfolio.positions.length && (fx || spyPnlPct != null) ? (
+        <div className="mb-4 grid gap-4 md:grid-cols-2">
+          {fx ? (
+            <section className="glass-card p-5" aria-labelledby="tl-title">
+              <h2 id="tl-title" className="flex items-center gap-1 font-semibold">
+                TL bazında
+                <InfoTip title="TL hesabı">
+                  Her alım, o günkü dolar/TL kuruyla TL&apos;ye çevrilir; bugünkü değer güncel kurla hesaplanır (ECB referans kuru). Kur kaynaklı
+                  kısım, TL&apos;nin dolara karşı değer kaybından gelen kazançtır; hisseler yerinde saysa da oluşur.
+                </InfoTip>
+              </h2>
+              <p className={`mt-1 text-2xl font-bold num ${fx.pnlTry >= 0 ? "text-gain" : "text-loss"}`}>
+                {fx.pnlTry >= 0 ? "+" : "−"}{formatMoney(Math.abs(fx.pnlTry), "₺")} <span className="text-base">({formatPercent(fx.pnlPct, true)})</span>
+              </p>
+              <dl className="mt-2 grid grid-cols-2 gap-2 text-sm num">
+                <div><dt className="text-ink-muted">Hisselerden</dt><dd className={fx.fromStocks >= 0 ? "text-gain" : "text-loss"}>{fx.fromStocks >= 0 ? "+" : "−"}{formatMoney(Math.abs(fx.fromStocks), "₺")}</dd></div>
+                <div><dt className="text-ink-muted">Kurdan</dt><dd className={fx.fromCurrency >= 0 ? "text-gain" : "text-loss"}>{fx.fromCurrency >= 0 ? "+" : "−"}{formatMoney(Math.abs(fx.fromCurrency), "₺")}</dd></div>
+              </dl>
+              <p className="mt-2 text-xs text-ink-muted num">Güncel kur: 1 $ = {fx.rate.toLocaleString("tr-TR", { maximumFractionDigits: 2 })} ₺</p>
+            </section>
+          ) : null}
+          {spyPnlPct != null ? (
+            <section className="glass-card p-5" aria-labelledby="bench-title">
+              <h2 id="bench-title" className="flex items-center gap-1 font-semibold">
+                S&amp;P 500 ile kıyas
+                <InfoTip title="Kıyas nasıl hesaplanıyor?">
+                  Her alımda harcadığın tutarla aynı gün SPY (S&amp;P 500 ETF&apos;i) alsaydın bugün ne kadar ederdi. Fiyat geçmişi son bir yılla sınırlı
+                  olduğu için daha eski alımlar bir yıl önceki fiyattan hesaplanır. Temettüler dahil değildir.
+                </InfoTip>
+              </h2>
+              <dl className="mt-2 grid grid-cols-2 gap-2 text-sm num">
+                <div><dt className="text-ink-muted">Portföyün</dt><dd className={`text-xl font-bold ${(a.history.at(-1) && a.history.at(-1)!.value >= a.history.at(-1)!.invested) ? "text-gain" : "text-loss"}`}>{formatPercent(a.history.at(-1)?.invested ? a.history.at(-1)!.value / a.history.at(-1)!.invested - 1 : null, true)}</dd></div>
+                <div><dt className="text-ink-muted">SPY olsaydı</dt><dd className={`text-xl font-bold ${spyPnlPct >= 0 ? "text-gain" : "text-loss"}`}>{formatPercent(spyPnlPct, true)}</dd></div>
+              </dl>
+              <p className="mt-2 text-xs text-ink-muted">Dolar bazında, grafikteki dönem için.</p>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 lg:col-span-2">
@@ -81,12 +146,12 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             <h2 id="value-title" className="flex items-center gap-1 font-semibold">
               Değer geçmişi
               <InfoTip title="Değer geçmişi">
-                Mavi alan portföyün o günkü piyasa değeri, kesikli çizgi o güne kadar yatırılan toplam tutardır. Aradaki fark kâr ya da
+                Mavi alan portföyün o günkü piyasa değeri, kesikli çizgi o güne kadar yatırılan toplam tutar, turuncu çizgi aynı alımlar SPY ile yapılsaydı oluşacak değerdir. Aradaki fark kâr ya da
                 zarardır. Fiyat geçmişi son bir yılla sınırlıdır; daha eski alımlar bir yıl öncesinden itibaren çizilir.
               </InfoTip>
             </h2>
             <div className="mt-4">
-              <ValueChart points={a.history} />
+              <ValueChart points={history} symbol={sym} />
             </div>
           </section>
           <section className="glass-card p-5" aria-labelledby="pos-title">
@@ -154,14 +219,14 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-export default function PortfolioPage({ params }: PageProps<"/portfoy/[id]">) {
+export default function PortfolioPage({ params, searchParams }: PageProps<"/portfoy/[id]">) {
   return (
     <>
       <Link href="/portfoy" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-primary">
         <ArrowLeft size={14} aria-hidden /> Portföyler
       </Link>
       <Suspense fallback={<div className="glass-card h-[32rem] animate-pulse" aria-label="Portföy yükleniyor" />}>
-        <Detail params={params} />
+        <Detail params={params} searchParams={searchParams} />
       </Suspense>
     </>
   );

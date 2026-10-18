@@ -9,7 +9,8 @@ export type MacroDef = {
   name: string;
   group: "faiz" | "enflasyon" | "buyume" | "piyasa";
   transform: Transform;     // what is shown: the level, the % change over 12 months, or the monthly difference
-  unit: "%" | "puan" | "$" | "bin kişi" | "endeks";
+  unit: "%" | "puan" | "$" | "bin kişi" | "endeks" | "₺";
+  source?: "fred" | "frankfurter"; // default FRED
   freq?: "m" | "q";         // monthly or quarterly release (default: daily/weekly)
   meaning: string;
   read?: (v: number, ctx: { yearAgo: number | null }) => { text: string; tone: Tone } | null;
@@ -79,6 +80,10 @@ export const MACRO: MacroDef[] = [
     read: (v, { yearAgo }) => yearAgo == null ? null : v / yearAgo - 1 >= 0.2
       ? { tone: "neutral", text: `Bir yılda %${Math.round((v / yearAgo - 1) * 100)} arttı: enerji hisseleri için olumlu, enflasyon için yukarı yönlü risk.` }
       : v / yearAgo - 1 <= -0.2 ? { tone: "neutral", text: `Bir yılda %${Math.round((1 - v / yearAgo) * 100)} düştü: enerji hisseleri için baskı, enflasyon için rahatlatıcı.` } : null },
+  { id: "USDTRY", name: "Dolar/TL", group: "piyasa", transform: "level", unit: "₺", source: "frankfurter",
+    meaning: "Bir doların kaç lira ettiği (Avrupa Merkez Bankası referans kuru). TL değer kaybettikçe dolar cinsinden yatırımların TL karşılığı, hisse fiyatı değişmese bile artar.",
+    read: (v, { yearAgo }) => yearAgo == null ? null
+      : { tone: "neutral", text: `TL bir yılda dolara karşı %${Math.round((1 - yearAgo / v) * 100)} değer kaybetti: dolar bazlı bir yatırım, hisseler yerinde saysa bile TL'de yaklaşık %${Math.round((v / yearAgo - 1) * 100)} kazandırdı.` } },
 ];
 export const MACRO_BY_ID = Object.fromEntries(MACRO.map((m) => [m.id, m])) as Record<string, MacroDef>;
 

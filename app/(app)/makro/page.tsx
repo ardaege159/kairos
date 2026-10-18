@@ -17,6 +17,7 @@ function fmt(def: MacroDef, v: number | null | undefined): string {
   switch (def.unit) {
     case "%": return `%${n(v)}`;
     case "$": return `${n(v)} $`;
+    case "₺": return `${n(v)} ₺`;
     case "bin kişi": return `${v >= 0 ? "+" : "−"}${Math.round(Math.abs(v)).toLocaleString("tr-TR")} bin`;
     default: return n(v);
   }
