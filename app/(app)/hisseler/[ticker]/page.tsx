@@ -8,6 +8,8 @@ import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
 import { getWatchlist } from "@/lib/data/watchlist";
 import { getCompanySpending, getSpendingActions } from "@/lib/data/spending";
+import { GrowthBadge } from "@/components/spending/quarter-bars";
+import { growth } from "@/lib/spending/trends";
 import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
 import { stockPoints } from "@/lib/insights/stock";
@@ -69,7 +71,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     requestTime(),
     getWatchlist(),
     isEtf ? Promise.resolve([]) : getCompanySpending({ tickers: [stock.ticker], limit: 1 }),
-    isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8 }),
+    isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8, sort: "date" }),
   ]);
   const federal = spending[0];
   const etfCategory = isEtf ? classifyEtf(stock.name) : null;
@@ -277,24 +279,35 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             <div>
               <p className="text-sm text-ink-muted">Son 12 ay sözleşme tutarı</p>
               <p className="mt-1 text-2xl font-bold num">{formatMoney(federal?.amount)}</p>
+              {federal && growth(federal.amount_lagged, federal.amount_prev) != null ? (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">
+                  Yıllık değişim <GrowthBadge value={growth(federal.amount_lagged, federal.amount_prev)} />
+                  <InfoTip title="Yıllık değişim">3 ay önce biten 12 ay, ondan önceki 12 ayla karşılaştırılır; savunma sözleşmeleri yaklaşık 90 gün geç raporlandığı için son 3 ay dahil edilmez.</InfoTip>
+                </p>
+              ) : null}
               {federal?.recipients.length ? (
                 <p className="mt-1 text-xs text-ink-muted">Alıcı birimler: {federal.recipients.slice(0, 4).join(", ")}{federal.recipients.length > 4 ? "…" : ""}</p>
               ) : null}
             </div>
             <div className="md:col-span-2">
-              <p className="mb-2 text-sm text-ink-muted">Son 30 günün büyük ödemeleri</p>
+              <p className="mb-2 text-sm text-ink-muted">Son büyük sözleşme işlemleri (ayrıntı ve yorum için tıkla)</p>
               {spendingActions.length ? (
                 <ul className="space-y-1.5 text-sm">
                   {spendingActions.map((a) => (
-                    <li key={a.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] gap-3">
-                      <span className="text-ink-muted num">{formatDate(a.action_date)}</span>
-                      <span className="truncate" title={a.description ?? undefined}>{a.agency}</span>
-                      <span className="text-right font-medium num">{formatMoney(a.amount)}</span>
+                    <li key={a.id}>
+                      <Link href={`/harcamalar/islem/${a.id}`} className="grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] gap-3 hover:text-primary">
+                        <span className="text-ink-muted num">{formatDate(a.action_date)}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate">{a.agency}</span>
+                          {a.psc_desc ? <span className="block truncate text-xs text-ink-muted">{a.psc_desc.toLowerCase()}</span> : null}
+                        </span>
+                        <span className="text-right font-medium num">{formatMoney(a.amount)}</span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-ink-muted">Son 30 günün en büyük 500 ödemesi arasında bu şirket yok.</p>
+                <p className="text-sm text-ink-muted">Son 90 günün kayıtlı en büyük işlemleri arasında bu şirket yok.</p>
               )}
             </div>
           </div>

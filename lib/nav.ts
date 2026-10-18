@@ -2,6 +2,7 @@ import {
   Briefcase,
   CalendarDays,
   ChartColumnBig,
+  Gauge,
   GitCompareArrows,
   Landmark,
   LayoutDashboard,
@@ -22,6 +23,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/portfoy", label: "Portföy", icon: Briefcase },
   { href: "/karsilastir", label: "Karşılaştır", icon: GitCompareArrows },
   { href: "/sektorler", label: "Sektörler", icon: Shapes },
+  { href: "/makro", label: "Makro", icon: Gauge },
   { href: "/piyasa", label: "Piyasa ve haberler", icon: Newspaper },
   { href: "/harcamalar", label: "Federal harcamalar", icon: Landmark },
 ];

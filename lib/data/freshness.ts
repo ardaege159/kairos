@@ -9,6 +9,7 @@ const GROUPS = {
   news: { label: "Haberler", sources: ["news"] },
   calendar: { label: "Takvim", sources: ["calendars"] },
   spending: { label: "Federal harcamalar", sources: ["usaspending"] },
+  macro: { label: "Makro", sources: ["macro"] },
 } as const;
 export type FreshnessKey = keyof typeof GROUPS;
 export type Freshness = { key: FreshnessKey; label: string; at: string | null }[];
