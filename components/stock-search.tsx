@@ -23,11 +23,13 @@ export function StockSearch({
   placeholder = "Hisse ya da ETF ara: kod veya şirket adı",
   exclude = [],
   autoFocus = false,
+  id,
 }: {
   onSelect: (ticker: string, suggestion: Suggestion) => void;
   placeholder?: string;
   exclude?: string[];
   autoFocus?: boolean;
+  id?: string;
 }) {
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<Suggestion[]>([]);
@@ -100,6 +102,7 @@ export function StockSearch({
     <div ref={box} className="relative min-w-0 flex-1">
       <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-outline" aria-hidden />
       <input
+        id={id}
         role="combobox"
         aria-expanded={showList}
         aria-controls={listId}
