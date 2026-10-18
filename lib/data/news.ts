@@ -127,3 +127,13 @@ export async function getNextEarnings(ticker: string): Promise<{ report_date: st
   if (error) throw error;
   return data?.[0] ? { ...data[0], estimate_eps: data[0].estimate_eps == null ? null : Number(data[0].estimate_eps) } : null;
 }
+
+/** Reported vs estimated EPS history for a ticker (Alpha Vantage), newest first. */
+export async function getEarningsHistory(ticker: string) {
+  const supabase = await db();
+  const { data, error } = await supabase.from("earnings_history").select("fiscal_date_ending,reported_date,reported_eps,estimated_eps,surprise_pct")
+    .eq("ticker", ticker).order("fiscal_date_ending", { ascending: false }).limit(12);
+  if (error) throw error;
+  const n = (v: unknown) => (v == null ? null : Number(v));
+  return (data ?? []).map((r) => ({ ...r, reported_eps: n(r.reported_eps), estimated_eps: n(r.estimated_eps), surprise_pct: n(r.surprise_pct) }));
+}

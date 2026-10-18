@@ -15,6 +15,8 @@ import { ProsCons } from "@/components/stocks/pros-cons";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
 import { ValuationSection } from "@/components/stocks/valuation-section";
+import { EarningsSurprises } from "@/components/stocks/earnings-surprises";
+import { surpriseSummary } from "@/lib/metrics/earnings";
 import { AlertForm, DeleteAlertButton } from "@/components/alerts/alert-form";
 import { getAlerts } from "@/lib/data/alerts";
 import { ALERT_SHORT } from "@/lib/alerts/evaluate";
@@ -27,7 +29,7 @@ import { QuarterCharts, type QuarterPoint } from "@/components/stocks/quarter-ch
 import { RangeCard } from "@/components/stocks/range-card";
 import { ScoreCard } from "@/components/stocks/score-card";
 import { SectorCompare } from "@/components/stocks/sector-compare";
-import { getNextEarnings, getTickerNews, requestTime } from "@/lib/data/news";
+import { getEarningsHistory, getNextEarnings, getTickerNews, requestTime } from "@/lib/data/news";
 import { getPrices, getQuarters, getSectorStats, getStock, searchStocks, type SectorStat } from "@/lib/data/stocks";
 import { formatDate, formatMetric, formatMoney, formatPercent, formatPeriod, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
@@ -69,7 +71,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -81,6 +83,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8, sort: "date" }),
     isEtf || !stock.core ? Promise.resolve(null) : getInsiderTrades(stock.ticker),
     getAlerts(stock.ticker),
+    isEtf ? Promise.resolve([]) : getEarningsHistory(stock.ticker),
   ]);
   const federal = spending[0];
   const etfCategory = isEtf ? classifyEtf(stock.name) : null;
@@ -197,6 +200,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             price: stock.price,
             daysToEarnings: nextEarnings ? Math.round((Date.parse(`${nextEarnings.report_date}T00:00:00Z`) - now) / 864e5) : null,
             federal12m: federal?.amount ?? null,
+            earnings: earningsHistory.length ? surpriseSummary(earningsHistory) : null,
             insiders: insiders ? summarize(insiders.filter((t) => Date.parse(t.date) >= now - 90 * 864e5)) : null,
           })}
         />
@@ -236,6 +240,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           <Suspense fallback={<div className="glass-card mt-4 h-72 animate-pulse" aria-label="Değerleme geçmişi yükleniyor" />}>
             <ValuationSection ticker={stock.ticker} quarters={quarters} price={stock.price} asOf={stock.as_of} />
           </Suspense>
+          <EarningsSurprises rows={earningsHistory} />
           <details className="glass-card mt-4 p-5">
             <summary className="cursor-pointer text-sm font-medium">Çeyreklik sonuçları tablo olarak göster</summary>
             <div className="mt-3 overflow-x-auto">

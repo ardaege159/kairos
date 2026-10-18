@@ -10,6 +10,7 @@ export type StockInput = {
   price: number | null;
   daysToEarnings: number | null;
   federal12m: number | null;
+  earnings?: { quarters: number; beats: number; misses: number; recentMisses: number; avgSurprise: number | null } | null;
   insiders?: { buyValue: number; sellValue: number; buyers: number; sellers: number; plannedSellShare: number | null } | null;
 };
 
@@ -97,6 +98,13 @@ export function stockPoints(s: StockInput): { pros: Point[]; cons: Point[]; watc
     detail: `${s.daysToEarnings <= 0 ? "Bugün" : `${s.daysToEarnings} gün sonra`} çeyrek sonuçları açıklanacak; fiyat sert hareket edebilir.` });
   if (s.federal12m != null && s.federal12m >= 1e9) watch.push({ key: "federal", title: "Gelirin bir kısmı devletten", strength: 0.5,
     detail: `Son 12 ayda ${money(s.federal12m)} federal sözleşme aldı. İstikrar sağlar ama bütçe kesintilerine duyarlıdır.` });
+  // Earnings vs analyst expectations
+  const e = s.earnings;
+  if (e && e.quarters >= 6 && e.beats >= e.quarters - 1) pros.push({ key: "beats", title: "Beklentileri düzenli aşıyor", strength: 0.65,
+    detail: `Son ${e.quarters} çeyreğin ${e.beats} tanesinde hisse başı kâr analist beklentisinin üstünde geldi${e.avgSurprise != null ? ` (ortalama sürpriz %${x(e.avgSurprise)})` : ""}.` });
+  else if (e && e.recentMisses >= 2) cons.push({ key: "misses", title: "Beklentilerin altında kalıyor", strength: 0.6,
+    detail: `Son 4 çeyreğin ${e.recentMisses} tanesinde hisse başı kâr analist beklentisinin altında kaldı.` });
+
   // Insiders (last 90 days, open market only)
   const ins = s.insiders;
   if (ins && ins.buyers >= 2 && ins.buyValue >= 250_000) pros.push({ key: "insiders", title: "Yöneticiler hisse alıyor", strength: Math.min(1, 0.6 + ins.buyers / 10),
