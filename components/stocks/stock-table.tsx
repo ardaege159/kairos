@@ -9,6 +9,7 @@ import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
 import { formatMoney, formatMultiple, formatPercent, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
+import { ETF_CATEGORIES, classifyEtf } from "@/lib/etf";
 import { sectorName } from "@/lib/sectors";
 
 export type StockListItem = {
@@ -23,10 +24,11 @@ export type StockListItem = {
   pb: number | null;
   return_1y: number | null;
   score: number | null;
+  dollar_volume: number | null;
   watched?: boolean;
 };
 
-type SortKey = "ticker" | "price" | "change_1d" | "market_cap" | "pe" | "pb" | "return_1y" | "score";
+type SortKey = "ticker" | "price" | "change_1d" | "market_cap" | "pe" | "pb" | "return_1y" | "score" | "dollar_volume";
 type Tip = { title: string; text: string; formula?: string };
 const metricTip = (key: string): Tip => {
   const d = METRIC_BY_KEY[key];
@@ -38,6 +40,7 @@ const COLUMNS: { key: SortKey; label: string; align: "left" | "right"; tip?: Tip
   { key: "price", label: "Fiyat", align: "right", tip: { title: "Fiyat", text: "Son işlem gününün kapanış fiyatı. Veriler en az 15 dakika gecikmelidir." } },
   { key: "change_1d", label: "Günlük", align: "right", tip: { title: "Günlük değişim", text: "Son kapanışın bir önceki işlem gününün kapanışına göre değişimi." } },
   { key: "market_cap", label: "Piyasa değeri", align: "right", tip: metricTip("market_cap") },
+  { key: "dollar_volume", label: "Hacim", align: "right", tip: metricTip("dollar_volume") },
   { key: "pe", label: "F/K", align: "right", tip: metricTip("pe") },
   { key: "pb", label: "PD/DD", align: "right", tip: metricTip("pb") },
   { key: "return_1y", label: "1 yıl", align: "right", tip: metricTip("return_1y") },
@@ -109,6 +112,10 @@ export function StockTable({
     update({ sirala: key, yon: nextDir });
   };
 
+  // ETFs have no market cap, ratios or score: hide those columns in the ETF view.
+  const etfView = params.get("evren") === "etf";
+  const hidden = new Set<SortKey>(etfView ? ["market_cap", "pe", "pb", "score"] : []);
+  const columns = COLUMNS.filter((c) => !hidden.has(c.key));
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = total ? (page - 1) * pageSize + 1 : 0;
   const to = Math.min(page * pageSize, total);
@@ -132,7 +139,7 @@ export function StockTable({
                 key={u.key}
                 type="button"
                 aria-pressed={activeU}
-                onClick={() => update({ evren: u.key === "tumu" ? null : u.key })}
+                onClick={() => update({ evren: u.key === "tumu" ? null : u.key, tur: null, ...(u.key === "etf" ? { sirala: "dollar_volume", yon: "desc" } : {}) })}
                 className={`rounded-md px-3 py-1 text-xs font-medium ${activeU ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink"}`}
               >
                 {u.label}
@@ -155,12 +162,32 @@ export function StockTable({
         </select>
         <span className="text-sm text-ink-muted num">{total.toLocaleString("tr-TR")} sonuç</span>
       </div>
+      {params.get("evren") === "etf" ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-outline-soft/50 px-4 py-3" role="group" aria-label="ETF türü">
+          {[{ key: "", label: "Tüm türler", help: "" }, ...ETF_CATEGORIES, { key: "diger", label: "Diğer", help: "Adından türü anlaşılamayan ETF'ler." }].map((c) => {
+            const active = (params.get("tur") ?? "") === c.key;
+            return (
+              <span key={c.key || "all"} className="inline-flex items-center">
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => update({ tur: c.key || null })}
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary text-white" : "bg-white/60 text-ink-muted hover:text-ink"}`}
+                >
+                  {c.label}
+                </button>
+                {c.help ? <InfoTip title={c.label}>{c.help}</InfoTip> : null}
+              </span>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="text-ink-muted">
-              {COLUMNS.map((c) => (
-                <th key={c.key} scope="col" className={`px-4 py-2.5 font-medium ${c.align === "right" ? "text-right" : "text-left"}`}>
+              {columns.map((c) => (
+                <th key={c.key} scope="col" className={`px-4 py-2.5 font-medium whitespace-nowrap ${c.align === "right" ? "text-right" : "text-left"}`}>
                   <span className="inline-flex items-center gap-0.5">
                     <button type="button" onClick={() => toggle(c.key)} className="inline-flex items-center gap-1 hover:text-ink">
                       {c.label}
@@ -187,20 +214,25 @@ export function StockTable({
                       <span className="flex min-w-0 flex-col">
                         <span className="flex items-center gap-1.5">
                           <span className="font-semibold text-ink group-hover:text-primary">{s.ticker}</span>
-                          {s.asset_type === "etf" ? <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">ETF</span> : null}
+                          {s.asset_type === "etf" ? (
+                            <span className="rounded-full border border-outline-soft px-1.5 text-[10px] text-ink-muted">
+                              ETF{classifyEtf(s.name) ? ` · ${classifyEtf(s.name)!.label}` : ""}
+                            </span>
+                          ) : null}
                         </span>
                         <span className="max-w-[18rem] truncate text-xs text-ink-muted">{s.name}</span>
                       </span>
                     </Link>
                   </div>
                 </td>
-                <td className="px-4 py-2.5 text-right">{formatPrice(s.price)}</td>
+                <td className="px-4 py-2.5 text-right whitespace-nowrap">{formatPrice(s.price)}</td>
                 <td className="px-4 py-2.5 text-right"><Change v={s.change_1d} /></td>
-                <td className="px-4 py-2.5 text-right">{formatMoney(s.market_cap)}</td>
-                <td className="px-4 py-2.5 text-right">{formatMultiple(s.pe)}</td>
-                <td className="px-4 py-2.5 text-right">{formatMultiple(s.pb)}</td>
+                {!etfView ? <td className="px-4 py-2.5 text-right whitespace-nowrap">{formatMoney(s.market_cap)}</td> : null}
+                <td className="px-4 py-2.5 text-right whitespace-nowrap text-ink-muted">{formatMoney(s.dollar_volume)}</td>
+                {!etfView ? <td className="px-4 py-2.5 text-right">{formatMultiple(s.pe)}</td> : null}
+                {!etfView ? <td className="px-4 py-2.5 text-right">{formatMultiple(s.pb)}</td> : null}
                 <td className="px-4 py-2.5 text-right"><Change v={s.return_1y} /></td>
-                <td className="px-4 py-2.5 text-right font-semibold">{s.score ?? "—"}</td>
+                {!etfView ? <td className="px-4 py-2.5 text-right font-semibold">{s.score ?? "—"}</td> : null}
               </tr>
             ))}
           </tbody>

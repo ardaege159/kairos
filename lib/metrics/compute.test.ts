@@ -108,6 +108,12 @@ describe("priceMetrics", () => {
     expect(m.return_1y).toBeCloseTo(399 / 147 - 1);
     expect(m.high_52w).toBe(400);
     expect(m.low_52w).toBe(99 + 48);
+    expect(m.dollar_volume).toBeNull(); // no volume in these bars
+  });
+
+  it("averages traded value over the last 20 days", () => {
+    const bars = Array.from({ length: 30 }, (_, i) => ({ date: `d${String(i).padStart(2, "0")}`, close: 10, high: 10, low: 10, volume: i < 10 ? 1 : 100 }));
+    expect(priceMetrics(bars).dollar_volume).toBe(1000);
   });
 });
 

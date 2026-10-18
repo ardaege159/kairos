@@ -8,6 +8,7 @@ import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
 import { getWatchlist } from "@/lib/data/watchlist";
 import { getCompanySpending, getSpendingActions } from "@/lib/data/spending";
+import { classifyEtf } from "@/lib/etf";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -16,7 +17,7 @@ import { RangeCard } from "@/components/stocks/range-card";
 import { ScoreCard } from "@/components/stocks/score-card";
 import { SectorCompare } from "@/components/stocks/sector-compare";
 import { getNextEarnings, getTickerNews, requestTime } from "@/lib/data/news";
-import { getPrices, getQuarters, getSectorStats, getStock, type SectorStat } from "@/lib/data/stocks";
+import { getPrices, getQuarters, getSectorStats, getStock, searchStocks, type SectorStat } from "@/lib/data/stocks";
 import { formatDate, formatMetric, formatMoney, formatPercent, formatPeriod, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
 import { sectorName } from "@/lib/sectors";
@@ -69,7 +70,13 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8 }),
   ]);
   const federal = spending[0];
-  const ratio =(a?: number, b?: number) => (a == null || b == null || b === 0 ? null : a / b);
+  const etfCategory = isEtf ? classifyEtf(stock.name) : null;
+  const similar = isEtf
+    ? (await searchStocks({ universe: "etf", etfCategory: etfCategory?.key ?? "diger", sort: "dollar_volume", dir: "desc", page: 1 })).rows
+        .filter((r) => r.ticker !== stock.ticker)
+        .slice(0, 8)
+    : [];
+  const ratio = (a?: number, b?: number) => (a == null || b == null || b === 0 ? null : a / b);
   const quarterPoints: QuarterPoint[] = quarters
     .filter((q) => q.values.revenue != null || q.values.net_income != null)
     .map((q) => ({
@@ -103,7 +110,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             ) : null}
           </div>
           <p className="mt-1 text-sm text-ink-muted">
-            {isEtf ? "Borsa yatırım fonu" : sectorName(stock.sector)}
+            {isEtf ? `Borsa yatırım fonu${etfCategory ? ` · ${etfCategory.label}` : ""}` : sectorName(stock.sector)}
             {stock.sub_industry ? `, ${stock.sub_industry}` : ""}
             {stock.exchange ? ` · ${stock.exchange}` : ""}
           </p>
@@ -142,8 +149,53 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
         <div className="flex flex-col gap-4">
           {!isEtf ? <ScoreCard score={stock.score} parts={stock.score_parts} /> : null}
           <RangeCard price={stock.price} metrics={stock.metrics} />
+          {isEtf ? (
+            <section className="glass-card p-5" aria-labelledby="etf-info">
+              <h2 id="etf-info" className="font-semibold">Fon bilgisi</h2>
+              <dl className="mt-3 space-y-2 text-sm">
+                <div className="flex justify-between gap-3">
+                  <dt className="flex items-center gap-1 text-ink-muted">
+                    Tür
+                    {etfCategory ? <InfoTip title={etfCategory.label}>{etfCategory.help}</InfoTip> : null}
+                  </dt>
+                  <dd className="text-right font-medium">{etfCategory?.label ?? "Diğer"}</dd>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="flex items-center gap-1 text-ink-muted">
+                    Günlük işlem hacmi
+                    <InfoTip title={METRIC_BY_KEY.dollar_volume.label} formula={METRIC_BY_KEY.dollar_volume.help}>{METRIC_BY_KEY.dollar_volume.meaning}</InfoTip>
+                  </dt>
+                  <dd className="text-right font-medium num">{formatMoney(stock.metrics.dollar_volume)}</dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-xs text-ink-muted">Tür, fonun adından otomatik çıkarılır; fonun içindeki varlıkların listesi ücretsiz kaynaklarda yok.</p>
+            </section>
+          ) : null}
         </div>
       </div>
+
+      {isEtf && similar.length ? (
+        <section className="glass-card mt-8 p-5" aria-labelledby="similar-title">
+          <h2 id="similar-title" className="font-semibold">
+            Benzer ETF&apos;ler <span className="font-normal text-ink-muted">· {etfCategory?.label ?? "Diğer"}, en çok işlem görenler</span>
+          </h2>
+          <ul className="mt-3 grid gap-x-8 gap-y-2 md:grid-cols-2">
+            {similar.map((e) => (
+              <li key={e.ticker} className="grid grid-cols-[minmax(0,1fr)_4.5rem_5rem] items-center gap-3 text-sm">
+                <Link href={`/hisseler/${e.ticker}`} className="flex min-w-0 items-center gap-2 hover:text-primary">
+                  <TickerLogo ticker={e.ticker} size={22} etf />
+                  <span className="font-semibold">{e.ticker}</span>
+                  <span className="truncate text-ink-muted">{e.name}</span>
+                </Link>
+                <span className={`text-right num ${e.return_1y == null ? "text-ink-muted" : e.return_1y >= 0 ? "text-gain" : "text-loss"}`} title="1 yıl getiri">
+                  {formatPercent(e.return_1y, true)}
+                </span>
+                <span className="text-right text-xs text-ink-muted num" title="Günlük işlem hacmi">{formatMoney(e.dollar_volume)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {!isEtf && hasFundamentals ? (
         <>

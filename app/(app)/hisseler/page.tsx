@@ -13,12 +13,14 @@ const one = (v: string | string[] | undefined) => (typeof v === "string" ? v : u
 
 async function StockList({ searchParams }: { searchParams: Params }) {
   const sp = await searchParams;
-  const sort = (SORT_KEYS as readonly string[]).includes(one(sp.sirala) ?? "") ? (one(sp.sirala) as SortKey) : "market_cap";
+  const isEtfView = one(sp.evren) === "etf";
+  // ETFs have no market cap, so their list defaults to traded value.
+  const sort = (SORT_KEYS as readonly string[]).includes(one(sp.sirala) ?? "") ? (one(sp.sirala) as SortKey) : isEtfView ? "dollar_volume" : "market_cap";
   const dir = one(sp.yon) === "asc" ? "asc" : one(sp.yon) === "desc" ? "desc" : sort === "ticker" ? "asc" : "desc";
   const universe = (["sp500", "hisse", "etf"] as const).find((u) => u === one(sp.evren)) ?? ("tumu" as Universe);
   const page = Math.max(1, Number(one(sp.sayfa)) || 1);
   const [{ rows, total }, watchlist] = await Promise.all([
-    searchStocks({ q: one(sp.q), sector: one(sp.sektor), universe, sort, dir, page }),
+    searchStocks({ q: one(sp.q), sector: one(sp.sektor), universe, etfCategory: one(sp.tur), sort, dir, page }),
     getWatchlist(),
   ]);
   const watched = new Set(watchlist);

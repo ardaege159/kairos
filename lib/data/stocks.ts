@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { createClient, getOwner } from "@/lib/supabase/server";
+import { ETF_CATEGORIES, pgPattern } from "@/lib/etf";
 import { alpacaDailyCloses, type PricePoint } from "./alpaca";
 
 export type { PricePoint };
@@ -41,6 +42,7 @@ export type ListRow = {
   return_1y: number | null;
   score: number | null;
   as_of: string | null;
+  dollar_volume: number | null;
 };
 
 export type SectorStat = { metric: string; median: number | null; p25: number | null; p75: number | null; n: number };
@@ -81,6 +83,7 @@ const toListRow = (r: Record<string, unknown>): ListRow => {
     ticker: String(r.ticker), name: String(r.name), sector: (r.sector as string) ?? null, asset_type: r.asset_type as AssetType,
     in_sp500: Boolean(r.in_sp500), core: Boolean(r.core), price: n(r.price), change_1d: n(r.change_1d), market_cap: n(r.market_cap),
     pe: n(r.pe), pb: n(r.pb), return_1y: n(r.return_1y), score: n(r.score), as_of: (r.as_of as string) ?? null,
+    dollar_volume: n(r.dollar_volume),
   };
 };
 
@@ -109,7 +112,7 @@ export async function listSp500(): Promise<StockRow[]> {
   return (data as unknown as Joined[]).map(flatten);
 }
 
-export const SORT_KEYS = ["ticker", "price", "change_1d", "market_cap", "pe", "pb", "return_1y", "score"] as const;
+export const SORT_KEYS = ["ticker", "price", "change_1d", "market_cap", "pe", "pb", "return_1y", "score", "dollar_volume"] as const;
 export type SortKey = (typeof SORT_KEYS)[number];
 export type Universe = "tumu" | "sp500" | "hisse" | "etf";
 export const PAGE_SIZE = 50;
@@ -118,7 +121,7 @@ export const PAGE_SIZE = 50;
 const like = (q: string) => q.replace(/[%_,()*\\]/g, " ").trim();
 
 export async function searchStocks(opts: {
-  q?: string; sector?: string; universe?: Universe; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
+  q?: string; sector?: string; universe?: Universe; etfCategory?: string; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
 }): Promise<{ rows: ListRow[]; total: number }> {
   const supabase = await db();
   const page = Math.max(1, opts.page ?? 1);
@@ -128,7 +131,15 @@ export async function searchStocks(opts: {
   if (opts.sector) query = query.eq("sector", opts.sector);
   if (opts.universe === "sp500") query = query.eq("in_sp500", true);
   if (opts.universe === "hisse") query = query.eq("asset_type", "stock");
-  if (opts.universe === "etf") query = query.eq("asset_type", "etf");
+  if (opts.universe === "etf") {
+    query = query.eq("asset_type", "etf");
+    // Same first-match-wins order as classifyEtf: match this category, exclude the ones before it.
+    const idx = opts.etfCategory === "diger" ? ETF_CATEGORIES.length : ETF_CATEGORIES.findIndex((c) => c.key === opts.etfCategory);
+    if (idx >= 0) {
+      for (const prev of ETF_CATEGORIES.slice(0, idx)) query = query.not("name", "imatch", pgPattern(prev));
+      if (idx < ETF_CATEGORIES.length) query = query.filter("name", "imatch", pgPattern(ETF_CATEGORIES[idx]));
+    }
+  }
   const sort = opts.sort ?? "market_cap";
   query = query
     .order(sort, { ascending: (opts.dir ?? (sort === "ticker" ? "asc" : "desc")) === "asc", nullsFirst: false })

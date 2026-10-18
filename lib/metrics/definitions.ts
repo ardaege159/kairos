@@ -126,6 +126,11 @@ export const METRICS: MetricDef[] = [
     meaning: "Son bir yılda hissenin gördüğü en yüksek fiyat. Bugünkü fiyatın buna ne kadar yakın olduğu, hissenin zirvede mi düşüşte mi olduğunu gösterir.",
   },
   {
+    key: "dollar_volume", label: "Günlük işlem hacmi", short: "Hacim", group: "price", format: "money", better: null,
+    help: "Son 20 işlem gününde ortalama kapanış fiyatı × işlem gören adet.",
+    meaning: "Hisse ya da ETF'te her gün ortalama ne kadarlık alım satım yapıldığı. Yüksek hacim, kolay alınıp satılabildiğini (likidite) ve piyasanın ilgisini gösterir. ETF'lerin büyüklüğünü kıyaslamak için en pratik ölçüdür.",
+  },
+  {
     key: "low_52w", label: "52 hafta en düşük", group: "price", format: "price", better: null,
     help: "Son 252 işlem günündeki en düşük fiyat.",
     meaning: "Son bir yılda hissenin gördüğü en düşük fiyat.",

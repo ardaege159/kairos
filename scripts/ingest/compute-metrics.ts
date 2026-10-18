@@ -48,7 +48,7 @@ async function alpacaBars(symbols: string[], start: string, end: string): Promis
     const u = new URL("https://data.alpaca.markets/v2/stocks/bars");
     u.search = new URLSearchParams({ symbols: symbols.join(","), timeframe: "1Day", start, end, limit: "10000", feed: "sip",
       adjustment: "split", ...(page ? { page_token: page } : {}) }).toString();
-    let j: { bars?: Record<string, { t: string; c: number; h: number; l: number }[]>; next_page_token?: string } | null = null;
+    let j: { bars?: Record<string, { t: string; c: number; h: number; l: number; v: number }[]>; next_page_token?: string } | null = null;
     for (let attempt = 1; attempt <= 4 && !j; attempt++) {
       const r = await fetch(u, { headers: alpacaHeaders });
       if (r.ok) j = await r.json();
@@ -58,7 +58,7 @@ async function alpacaBars(symbols: string[], start: string, end: string): Promis
     if (!j) throw new Error("Alpaca: tekrar denemeler tükendi");
     for (const [s, list] of Object.entries(j.bars ?? {})) {
       const arr = out.get(s) ?? [];
-      for (const b of list) arr.push({ date: b.t.slice(0, 10), close: b.c, high: b.h, low: b.l });
+      for (const b of list) arr.push({ date: b.t.slice(0, 10), close: b.c, high: b.h, low: b.l, volume: b.v });
       out.set(s, arr);
     }
     page = j.next_page_token ?? undefined;
@@ -74,8 +74,8 @@ try {
   const facts = await selectAll<{ cik: number; period: string; values: Record<string, number> }>(
     "fundamentals_q", "cik,period,values", (q) => q.order("cik").order("period"));
   const since = new Date(Date.now() - 400 * 864e5).toISOString().slice(0, 10);
-  const corePrices = await selectAll<{ ticker: string; date: string; close: number; high: number; low: number }>(
-    "prices_daily", "ticker,date,close,high,low", (q) => q.gte("date", since).order("ticker").order("date"));
+  const corePrices = await selectAll<{ ticker: string; date: string; close: number; high: number; low: number; volume: number }>(
+    "prices_daily", "ticker,date,close,high,low,volume", (q) => q.gte("date", since).order("ticker").order("date"));
 
   // News tone: average Marketaux sentiment over the last 30 days, strong mentions only, at least 2 articles.
   const newsSince = new Date(Date.now() - 30 * 864e5).toISOString();
@@ -99,7 +99,7 @@ try {
   const bars = new Map<string, Bar[]>();
   for (const p of corePrices) {
     const list = bars.get(p.ticker) ?? [];
-    list.push({ date: p.date, close: Number(p.close), high: Number(p.high), low: Number(p.low) });
+    list.push({ date: p.date, close: Number(p.close), high: Number(p.high), low: Number(p.low), volume: Number(p.volume) });
     bars.set(p.ticker, list);
   }
 
@@ -165,6 +165,7 @@ try {
       ticker: r.c.ticker, as_of: r.asOf, latest_period: r.period, price: r.price, change_1d: r.change1d, metrics: clean,
       sector_pct: pct.get(r.c.ticker), score: s.score, score_parts: s.parts, updated_at: now,
       market_cap: num(r.metrics.market_cap), pe: num(r.metrics.pe), pb: num(r.metrics.pb), return_1y: num(r.metrics.return_1y),
+      dollar_volume: num(r.metrics.dollar_volume),
     };
   });
 

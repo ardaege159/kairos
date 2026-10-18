@@ -4,7 +4,7 @@ import { METRICS } from "./definitions.ts";
 
 export type Quarter = Record<string, number>; // metric -> value for one CY period
 export type Fundamentals = Map<string, Quarter>; // "CY2026Q2" -> values
-export type Bar = { date: string; close: number; high: number; low: number };
+export type Bar = { date: string; close: number; high: number; low: number; volume?: number };
 export type Metrics = Record<string, number | null>;
 
 export const periodKey = (y: number, q: number) => `CY${y}Q${q}`;
@@ -55,6 +55,12 @@ const div = (a: number | null, b: number | null) => (a == null || b == null || b
 const growth = (now: number | null, before: number | null) =>
   now == null || before == null || before <= 0 ? null : now / before - 1;
 
+/** Average daily traded value (close × shares) over the given bars; null without volume data. */
+function dollarVolume(bars: Bar[]): number | null {
+  const v = bars.filter((x) => x.volume != null && x.volume > 0);
+  return v.length ? v.reduce((s, x) => s + x.close * x.volume!, 0) / v.length : null;
+}
+
 export function priceMetrics(bars: Bar[]): Metrics & { price: number | null; change_1d: number | null } {
   const b = [...bars].sort((x, y) => x.date.localeCompare(y.date));
   const last = b.at(-1);
@@ -68,6 +74,7 @@ export function priceMetrics(bars: Bar[]): Metrics & { price: number | null; cha
     return_1y: last ? growth(last.close, back(252) ?? (b.length >= 200 ? b[0].close : null)) : null,
     high_52w: year.length ? Math.max(...year.map((x) => x.high)) : null,
     low_52w: year.length ? Math.min(...year.map((x) => x.low)) : null,
+    dollar_volume: dollarVolume(b.slice(-20)),
   };
 }
 
