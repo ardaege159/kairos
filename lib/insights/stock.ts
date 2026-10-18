@@ -55,6 +55,20 @@ export function stockPoints(s: StockInput): { pros: Point[]; cons: Point[]; watc
     if (m.debt_to_equity! > 2 || (p.debt_to_equity ?? 1) <= 0.15) cons.push({ key: "debt", title: "Borç yükü yüksek", strength: Math.min(1, 0.5 + m.debt_to_equity! / 6),
       detail: `Borç/özsermaye ${x(m.debt_to_equity!)}${med.debt_to_equity != null ? `, sektör medyanı ${x(med.debt_to_equity)}` : ""}. Faizler yükselirse ya da satışlar düşerse baskı artar.` });
   }
+  // Cash flow and dividends (last fiscal year)
+  if (has("fcf")) {
+    if (m.fcf! < 0) cons.push({ key: "fcf", title: "Nakit yakıyor", strength: 0.75,
+      detail: `Son mali yılda serbest nakit akışı eksi ${money(-m.fcf!)}: yatırımlarını işinden gelen nakitle karşılayamıyor.` });
+    else if (has("fcf_margin") && m.fcf_margin! >= 0.15) pros.push({ key: "fcf", title: "Güçlü nakit üretiyor", strength: Math.min(1, 0.6 + m.fcf_margin!),
+      detail: `Son mali yılda serbest nakit akışı ${money(m.fcf!)}; satışlara oranı ${pct(m.fcf_margin!)}.` });
+  }
+  if (has("dividend_yield") && m.dividend_yield! >= 0.025) {
+    if (has("payout_ratio") && m.payout_ratio! > 1) watch.push({ key: "dividend", title: "Temettü kârı aşıyor", strength: 0.7,
+      detail: `Temettü verimi ${pct(m.dividend_yield!)}, ama son mali yılda dağıtım oranı ${pct(m.payout_ratio!)} oldu: kazandığından fazlasını dağıttı, bu tempo sürmeyebilir.` });
+    else pros.push({ key: "dividend", title: "Düzenli temettü", strength: 0.55,
+      detail: `Temettü verimi ${pct(m.dividend_yield!)}${has("payout_ratio") ? `; kârın dağıtılan kısmı ${pct(m.payout_ratio!)}` : ""}.` });
+  }
+
   if (has("current_ratio") && m.current_ratio! < 1) cons.push({ key: "liquidity", title: "Kısa vadeli likidite dar", strength: 0.6,
     detail: `Cari oran ${x(m.current_ratio!)}: önümüzdeki 1 yılın borçları, 1 yılda nakde dönecek varlıklarından fazla.` });
 

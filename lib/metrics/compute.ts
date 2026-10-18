@@ -51,6 +51,15 @@ function instant(f: Fundamentals, metric: string, end: string): number | null {
   return null;
 }
 
+/** Quarter holding the latest fiscal-year cash-flow figures, at most 5 quarters before `end`. */
+export function latestFiscalYear(f: Fundamentals, end: string): string | null {
+  for (let i = 0; i <= 5; i++) {
+    const p = shiftPeriod(end, -i);
+    if (f.get(p)?.ocf_fy != null) return p;
+  }
+  return null;
+}
+
 const div = (a: number | null, b: number | null) => (a == null || b == null || b === 0 ? null : a / b);
 const growth = (now: number | null, before: number | null) =>
   now == null || before == null || before <= 0 ? null : now / before - 1;
@@ -97,6 +106,23 @@ export function fundamentalMetrics(f: Fundamentals, price: number | null): { per
   const cash = instant(f, "cash", period);
   const marketCap = price != null && shares != null ? price * shares : null;
 
+  // Cash-flow figures are annual: take the latest fiscal year ending at or before `period`, and pair
+  // them with that year's income statement so both sides cover the same twelve months.
+  const fy = latestFiscalYear(f, period);
+  const fyv = fy ? f.get(fy)! : null;
+  const capex = fyv?.capex_fy ?? null;
+  const fcf = fyv?.ocf_fy != null && capex != null ? fyv.ocf_fy - capex : null;
+  const fyRevenue = fy ? ttm(f, "revenue", fy) : null;
+  const fyNetIncome = fy ? ttm(f, "net_income", fy) : null;
+  const fyOperating = fy ? ttm(f, "operating_income", fy) : null;
+  const ebitda = fyOperating != null && fyv?.da_fy != null ? fyOperating + fyv.da_fy : null;
+  const ev = marketCap != null && debt != null && cash != null ? marketCap + debt - cash : null;
+  // Dividend yield: declared dividends per share over the last four quarters, else last fiscal year's
+  // cash dividends. A company that files a cash-flow statement with no dividend line pays none.
+  const dps = ttm(f, "dividends_ps", period);
+  const paid = fyv ? (fyv.dividends_paid_fy ?? (fyv.ocf_fy != null ? 0 : null)) : null;
+  const dividendYield = dps != null && price ? dps / price : div(paid, marketCap);
+
   return {
     period,
     metrics: {
@@ -117,6 +143,14 @@ export function fundamentalMetrics(f: Fundamentals, price: number | null): { per
       debt_to_equity: debt != null && equity != null && equity > 0 ? debt / equity : null,
       current_ratio: div(instant(f, "current_assets", period), instant(f, "current_liabilities", period)),
       net_cash: cash != null && debt != null ? cash - debt : null,
+      fcf,
+      fcf_yield: marketCap != null && marketCap > 0 ? div(fcf, marketCap) : null,
+      fcf_margin: fyRevenue != null && fyRevenue > 0 ? div(fcf, fyRevenue) : null,
+      ev_ebitda: ebitda != null && ebitda > 0 ? div(ev, ebitda) : null,
+      dividend_yield: dividendYield,
+      // Per-share dividends × shares over the same 12 months' profit; banks often lack the cash line.
+      payout_ratio: dps != null && shares != null && netIncome != null && netIncome > 0 ? (dps * shares) / netIncome
+        : paid != null && fyNetIncome != null && fyNetIncome > 0 ? paid / fyNetIncome : null,
     },
   };
 }

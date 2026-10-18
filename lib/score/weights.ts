@@ -5,8 +5,8 @@
 export type ScorePartKey = "valuation" | "profitability" | "growth" | "health" | "momentum" | "sector" | "news";
 
 export const SCORE_PARTS: Record<ScorePartKey, { label: string; weight: number; metrics: string[]; meaning: string }> = {
-  valuation: { label: "Değerleme", weight: 25, metrics: ["pe", "pb", "ps", "ev_sales"], meaning: "F/K, PD/DD, F/S ve FD/S'ye göre hisse sektöründekilere kıyasla ne kadar ucuz. Yüksek puan = daha ucuz." },
-  profitability: { label: "Karlılık", weight: 20, metrics: ["gross_margin", "operating_margin", "net_margin", "roe"], meaning: "Marjlar ve özsermaye kârlılığı sektöre göre ne kadar yüksek." },
+  valuation: { label: "Değerleme", weight: 25, metrics: ["pe", "pb", "ps", "ev_sales", "ev_ebitda", "fcf_yield"], meaning: "F/K, PD/DD, F/S, FD/S, FD/FAVÖK ve serbest nakit akışı verimine göre hisse sektöründekilere kıyasla ne kadar ucuz. Yüksek puan = daha ucuz." },
+  profitability: { label: "Karlılık", weight: 20, metrics: ["gross_margin", "operating_margin", "net_margin", "roe", "fcf_margin"], meaning: "Marjlar, serbest nakit akışı marjı ve özsermaye kârlılığı sektöre göre ne kadar yüksek." },
   growth: { label: "Büyüme", weight: 20, metrics: ["revenue_growth_yoy", "net_income_growth_yoy", "revenue_growth_ttm"], meaning: "Gelir ve kâr bir yıl öncesine göre sektördekilerden daha hızlı mı büyüyor." },
   health: { label: "Finansal sağlık", weight: 15, metrics: ["debt_to_equity", "current_ratio"], meaning: "Borç yükü düşük ve kısa vadeli ödeme gücü yüksek mi. Yüksek puan = daha sağlam bilanço." },
   momentum: { label: "Momentum", weight: 10, metrics: ["return_3m", "return_1y"], meaning: "Hisse son 3 ay ve 1 yılda sektöründekilerden daha iyi mi performans gösterdi." },

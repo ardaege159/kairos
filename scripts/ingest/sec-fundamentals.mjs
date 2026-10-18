@@ -13,11 +13,22 @@ const UA = 'Kairos personal research (non-commercial)';
 
 // metric -> ordered tag candidates (first tag that has a value wins)
 const FLOWS = {
-  revenue: [['us-gaap', 'Revenues', 'USD'], ['us-gaap', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'], ['us-gaap', 'SalesRevenueNet', 'USD']],
+  revenue: [['us-gaap', 'Revenues', 'USD'], ['us-gaap', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'], ['us-gaap', 'SalesRevenueNet', 'USD'],
+    // Banks: total revenue net of interest expense, else gross interest and dividend income.
+    ['us-gaap', 'RevenuesNetOfInterestExpense', 'USD'], ['us-gaap', 'InterestAndDividendIncomeOperating', 'USD']],
   gross_profit: [['us-gaap', 'GrossProfit', 'USD']],
   operating_income: [['us-gaap', 'OperatingIncomeLoss', 'USD']],
   net_income: [['us-gaap', 'NetIncomeLoss', 'USD']],
   eps_diluted: [['us-gaap', 'EarningsPerShareDiluted', 'USD-per-shares']],
+  dividends_ps: [['us-gaap', 'CommonStockDividendsPerShareDeclared', 'USD-per-shares'], ['us-gaap', 'CommonStockDividendsPerShareCashPaid', 'USD-per-shares']],
+};
+// Cash-flow statements are filed year-to-date, so 3-month frames only cover Q1. These come from
+// the annual (CYyyyy) frames and are stored as "<metric>_fy" on the quarter the fiscal year ends.
+const ANNUALS = {
+  ocf: [['us-gaap', 'NetCashProvidedByUsedInOperatingActivities', 'USD']],
+  capex: [['us-gaap', 'PaymentsToAcquirePropertyPlantAndEquipment', 'USD'], ['us-gaap', 'PaymentsToAcquireProductiveAssets', 'USD']],
+  dividends_paid: [['us-gaap', 'PaymentsOfDividendsCommonStock', 'USD'], ['us-gaap', 'PaymentsOfDividends', 'USD']],
+  da: [['us-gaap', 'DepreciationDepletionAndAmortization', 'USD'], ['us-gaap', 'DepreciationAndAmortization', 'USD'], ['us-gaap', 'DepreciationAmortizationAndAccretionNet', 'USD'], ['us-gaap', 'DepreciationAmortizationAndOther', 'USD']],
 };
 const INSTANTS = {
   assets: [['us-gaap', 'Assets', 'USD']],
@@ -30,7 +41,7 @@ const INSTANTS = {
   shares_outstanding: [['dei', 'EntityCommonStockSharesOutstanding', 'shares'], ['us-gaap', 'CommonStockSharesOutstanding', 'shares']],
 };
 const UNIT_LABEL = { USD: 'USD', 'USD-per-shares': 'USD/shares', shares: 'shares' };
-const DERIVABLE = new Set(['revenue', 'gross_profit', 'operating_income', 'net_income']);
+const DERIVABLE = new Set(['revenue', 'gross_profit', 'operating_income', 'net_income', 'dividends_ps']);
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let lastCall = 0;
@@ -141,12 +152,31 @@ for (const y of years) {
   }
 }
 
+let annualRows = 0;
+for (const y of years) {
+  for (const [metric, cands] of Object.entries(ANNUALS)) {
+    const seen = new Set();
+    for (const [taxonomy, tag, unit] of cands) {
+      for (const d of await loadFrame(taxonomy, tag, unit, `CY${y}`)) {
+        if (seen.has(d.cik)) continue;
+        seen.add(d.cik);
+        const last = quarterOf(d.end);
+        const target = `CY${last.y}Q${last.q}`;
+        if (!inRange.has(target)) continue;
+        put({ cik: d.cik, period: target, metric: `${metric}_fy`, value: d.val, unit: UNIT_LABEL[unit],
+          period_start: d.start ?? null, period_end: d.end, source_tag: `${taxonomy}:${tag}`, accn: d.accn ?? null });
+        annualRows++;
+      }
+    }
+  }
+}
+
 const all = [...rows.values()];
 const coverage = {};
 for (const r of all) (coverage[r.metric] ??= new Set()).add(r.cik);
 const summary = {
   quarters: `${quarters[0].y}Q${quarters[0].q}..${quarters.at(-1).y}Q${quarters.at(-1).q}`,
-  issuers: ciks.size, rows: all.length, derivedQ4: derived, ...stats, seconds: Math.round((Date.now() - started) / 1000),
+  issuers: ciks.size, rows: all.length, derivedQ4: derived, annualRows, ...stats, seconds: Math.round((Date.now() - started) / 1000),
   coverage: Object.fromEntries(Object.entries(coverage).map(([k, v]) => [k, v.size])),
 };
 console.log(JSON.stringify(summary, null, 2));

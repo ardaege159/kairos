@@ -2,6 +2,7 @@ import "server-only";
 import { connection } from "next/server";
 import { createClient, getOwner } from "@/lib/supabase/server";
 import { ETF_CATEGORIES, pgPattern } from "@/lib/etf";
+import { filterPath, type Range } from "@/lib/screener";
 import { alpacaDailyCloses, type PricePoint } from "./alpaca";
 
 export type { PricePoint };
@@ -148,6 +149,33 @@ export async function searchStocks(opts: {
   const { data, error, count } = await query;
   if (error) throw error;
   return { rows: (data ?? []).map(toListRow), total: count ?? 0 };
+}
+
+export type ScreenRow = ListRow & { metrics: Record<string, number> };
+
+/** Screener: stocks matching every range (missing values never match), sorted by any filter key. */
+export async function screenStocks(opts: {
+  ranges: Range[]; sector?: string; sp500Only?: boolean; sort: string; dir: "asc" | "desc"; page: number;
+}): Promise<{ rows: ScreenRow[]; total: number }> {
+  const supabase = await db();
+  let query = supabase.from("stock_list").select("*", { count: "exact" }).eq("asset_type", "stock").not("price", "is", null);
+  if (opts.sp500Only) query = query.eq("in_sp500", true);
+  if (opts.sector) query = query.eq("sector", opts.sector);
+  for (const r of opts.ranges) {
+    if (r.min != null) query = query.gte(filterPath(r.key), r.min);
+    if (r.max != null) query = query.lte(filterPath(r.key), r.max);
+  }
+  const page = Math.max(1, opts.page);
+  query = query
+    .order(filterPath(opts.sort), { ascending: opts.dir === "asc", nullsFirst: false })
+    .order("ticker")
+    .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return {
+    rows: (data ?? []).map((r) => ({ ...toListRow(r), metrics: Object.fromEntries(Object.entries((r.metrics ?? {}) as Record<string, number>).map(([k, v]) => [k, Number(v)])) })),
+    total: count ?? 0,
+  };
 }
 
 /** Typeahead: exact ticker first, then ticker prefix, then name matches; bigger companies first. */

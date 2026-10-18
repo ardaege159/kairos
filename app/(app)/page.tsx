@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { ArrowDown, ArrowUp, CalendarClock } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { NewsList } from "@/components/news/news-list";
+import { MarketHeatmap } from "@/components/market-heatmap";
 import { PageHeader } from "@/components/page-header";
 import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
@@ -141,6 +142,11 @@ export default function PanelPage() {
       <Suspense fallback={<div className="glass-card h-96 animate-pulse" aria-label="Panel yükleniyor" />}>
         <Dashboard />
       </Suspense>
+      <div className="mt-4">
+        <Suspense fallback={<div className="glass-card h-[600px] animate-pulse" aria-label="Isı haritası yükleniyor" />}>
+          <MarketHeatmap />
+        </Suspense>
+      </div>
     </>
   );
 }

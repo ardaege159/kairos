@@ -53,6 +53,44 @@ describe("ttm", () => {
   });
 });
 
+describe("cash flow and dividends", () => {
+  // Fiscal year ends CY2025Q4: OCF 80, capex 30, D&A 20, dividends paid 15; market cap 200.
+  function withCashFlow(): Fundamentals {
+    const f = sample();
+    Object.assign(f.get("CY2025Q4")!, { ocf_fy: 80, capex_fy: 30, da_fy: 20, dividends_paid_fy: 15 });
+    return f;
+  }
+
+  it("pairs annual cash flows with the same fiscal year's income statement", () => {
+    const m = fundamentalMetrics(withCashFlow(), 20).metrics;
+    const fyRevenue = 120 + 130 + 140 + 150; // CY2025Q1..Q4
+    expect(m.fcf).toBe(50);
+    expect(m.fcf_yield).toBeCloseTo(50 / 200);
+    expect(m.fcf_margin).toBeCloseTo(50 / fyRevenue);
+    expect(m.ev_ebitda).toBeCloseTo((200 + 200 - 50) / (fyRevenue * 0.2 + 20));
+    expect(m.payout_ratio).toBeCloseTo(15 / (fyRevenue * 0.1));
+    expect(m.dividend_yield).toBeCloseTo(15 / 200); // no per-share data: falls back to cash paid
+  });
+
+  it("prefers declared dividends per share and treats a cash-flow filer without dividends as zero", () => {
+    const f = withCashFlow();
+    for (const p of ["CY2025Q3", "CY2025Q4", "CY2026Q1", "CY2026Q2"]) f.get(p)!.dividends_ps = 0.25;
+    expect(fundamentalMetrics(f, 20).metrics.dividend_yield).toBeCloseTo(1 / 20);
+    expect(fundamentalMetrics(f, 20).metrics.payout_ratio).toBeCloseTo((1 * 10) / 62); // dps × shares ÷ TTM net income
+
+    const g = sample();
+    Object.assign(g.get("CY2025Q4")!, { ocf_fy: 80, capex_fy: 30 });
+    expect(fundamentalMetrics(g, 20).metrics.dividend_yield).toBe(0);
+    expect(fundamentalMetrics(sample(), 20).metrics.dividend_yield).toBeNull(); // no cash-flow data at all
+  });
+
+  it("leaves free cash flow unknown when capex is not reported", () => {
+    const f = sample();
+    f.get("CY2025Q4")!.ocf_fy = 80;
+    expect(fundamentalMetrics(f, 20).metrics.fcf).toBeNull();
+  });
+});
+
 describe("fundamentalMetrics", () => {
   it("computes valuation, margins, growth and health from hand-checked numbers", () => {
     const { period, metrics: m } = fundamentalMetrics(sample(), 20); // market cap = 20 × 10 = 200

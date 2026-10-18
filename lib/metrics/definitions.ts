@@ -42,6 +42,21 @@ export const METRICS: MetricDef[] = [
     meaning: "F/S'ye benzer ama borcu da hesaba katar: şirketi tamamen satın alan biri borcunu da üstlenir, kasasındaki nakdi de alır. Borçlu şirketleri borçsuzlarla karşılaştırırken daha adildir.",
   },
   {
+    key: "ev_ebitda", label: "Firma değeri/FAVÖK", short: "FD/FAVÖK", group: "valuation", format: "multiple", better: "lower",
+    help: "(Piyasa değeri + uzun vadeli borç − nakit) ÷ son mali yıl FAVÖK (faaliyet kârı + amortisman). FAVÖK negatifse hesaplanmaz.",
+    meaning: "Şirketi borcuyla birlikte satın alan biri, şirketin yıllık nakit benzeri faaliyet kazancının kaç katını öder? Borç ve amortisman farklarından etkilenmediği için farklı yapıdaki şirketleri F/K'dan daha adil karşılaştırır. Bankalarda anlamlı değildir.",
+  },
+  {
+    key: "fcf_yield", label: "Serbest nakit akışı verimi", short: "SNA verimi", group: "valuation", format: "percent", better: "higher",
+    help: "Son mali yıl serbest nakit akışı ÷ piyasa değeri.",
+    meaning: "Şirket bugünkü fiyatıyla satın alınsa, yatırımlarını yaptıktan sonra kasasına kalan nakit yılda yüzde kaç getiri sağlardı? Kâr muhasebe kurallarıyla şişirilebilir, nakit akışı daha zor şişirilir. Yüksek verim hissenin nakit üretimine göre ucuz olduğunu gösterir.",
+  },
+  {
+    key: "dividend_yield", label: "Temettü verimi", group: "valuation", format: "percent", better: null,
+    help: "Son 4 çeyrekte ilan edilen hisse başı temettü ÷ fiyat; yoksa son mali yıl ödenen temettü ÷ piyasa değeri.",
+    meaning: "Hisseyi bugünkü fiyattan alsan, şirketin son bir yıldaki temettüsüyle yılda yüzde kaç nakit alırdın? Büyüme şirketleri kârını işe yatırdığı için genelde temettü dağıtmaz; bu yüzden skora girmez. Çok yüksek verim, fiyatın sert düştüğüne de işaret edebilir.",
+  },
+  {
     key: "eps_ttm", label: "Hisse başı kâr (12 ay)", group: "valuation", format: "price", better: null,
     help: "Son 12 ay net kâr ÷ hisse sayısı.",
     meaning: "Bir hisseye düşen yıllık kâr. Tek başına değil, yıldan yıla nasıl değiştiğine bakarak yorumlanır; büyüyorsa şirket hissedarı için daha çok kazanıyor demektir.",
@@ -71,6 +86,11 @@ export const METRICS: MetricDef[] = [
     key: "roa", label: "Aktif kârlılığı", short: "ROA", group: "profitability", format: "percent", better: "higher",
     help: "Son 12 ay net kâr ÷ toplam varlıklar.",
     meaning: "Şirketin sahip olduğu tüm varlıklarla ne kadar verimli kâr ettiği. Bankalar gibi varlığı çok büyük şirketlerde doğal olarak düşüktür, o yüzden sektör içinde karşılaştır.",
+  },
+  {
+    key: "fcf_margin", label: "Serbest nakit akışı marjı", short: "SNA marjı", group: "profitability", format: "percent", better: "higher",
+    help: "Son mali yıl serbest nakit akışı ÷ aynı yılın geliri.",
+    meaning: "Her 100 dolarlık satıştan, işletme giderleri ve yatırım harcamaları (fabrika, ekipman, sunucu) çıktıktan sonra kasada kalan nakit. Kârın gerçekten nakde dönüşüp dönüşmediğini gösterir.",
   },
 
   {
@@ -103,6 +123,16 @@ export const METRICS: MetricDef[] = [
     key: "net_cash", label: "Net nakit", group: "health", format: "money", better: null,
     help: "Nakit − uzun vadeli borç. Negatifse net borç.",
     meaning: "Şirket kasasındaki nakitle tüm uzun vadeli borcunu kapatsa elinde ne kalır? Pozitifse net nakit, negatifse net borç pozisyonundadır.",
+  },
+  {
+    key: "fcf", label: "Serbest nakit akışı", short: "SNA", group: "health", format: "money", better: null,
+    help: "Son mali yıl faaliyetlerden nakit akışı − yatırım harcaması (maddi duran varlık alımı).",
+    meaning: "Şirketin işini sürdürmek ve büyütmek için gereken yatırımları yaptıktan sonra elinde kalan nakit. Temettü, hisse geri alımı ve borç ödemesi bu paradan yapılır. Negatifse şirket nakit yakıyor demektir.",
+  },
+  {
+    key: "payout_ratio", label: "Temettü dağıtım oranı", group: "health", format: "percent", better: null,
+    help: "Son 4 çeyrekte ilan edilen hisse başı temettü × hisse sayısı ÷ son 12 ay net kâr; yoksa son mali yıl ödenen temettü ÷ aynı yılın net kârı.",
+    meaning: "Şirket kârının yüzde kaçını temettü olarak dağıtıyor? %60'ın altı genelde sürdürülebilir sayılır; %100'ü aşarsa şirket kazandığından fazlasını dağıtıyordur ve temettü kesilme riski artar.",
   },
 
   {
