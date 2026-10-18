@@ -14,6 +14,9 @@ import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
+import { AlertForm, DeleteAlertButton } from "@/components/alerts/alert-form";
+import { getAlerts } from "@/lib/data/alerts";
+import { ALERT_SHORT } from "@/lib/alerts/evaluate";
 import { getInsiderTrades } from "@/lib/data/insiders";
 import { summarize } from "@/lib/insiders/parse";
 import { NewsList } from "@/components/news/news-list";
@@ -65,7 +68,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -76,6 +79,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve([]) : getCompanySpending({ tickers: [stock.ticker], limit: 1 }),
     isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8, sort: "date" }),
     isEtf || !stock.core ? Promise.resolve(null) : getInsiderTrades(stock.ticker),
+    getAlerts(stock.ticker),
   ]);
   const federal = spending[0];
   const etfCategory = isEtf ? classifyEtf(stock.name) : null;
@@ -270,6 +274,26 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           </p>
         </section>
       ) : null}
+
+      <section className="glass-card mt-8 p-5" aria-labelledby="alert-title">
+        <h2 id="alert-title" className="mb-3 font-semibold">Alarm</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <AlertForm ticker={stock.ticker} price={stock.price} />
+          <div>
+            <p className="mb-2 text-sm text-ink-muted">Bu hisse için alarmların</p>
+            {alerts.length ? (
+              <ul className="space-y-1.5 text-sm">
+                {alerts.map((a) => (
+                  <li key={a.id} className={`flex items-center gap-2 ${a.active ? "" : "opacity-60"}`}>
+                    <span className="flex-1 num">{ALERT_SHORT[a.kind]} {a.threshold.toLocaleString("tr-TR")}{a.kind === "move_abs" ? "%" : a.kind.startsWith("price") ? " $" : ""}{a.active ? "" : " · tetiklendi"}</span>
+                    <DeleteAlertButton id={a.id} />
+                  </li>
+                ))}
+              </ul>
+            ) : <p className="text-sm text-ink-muted">Kurulu alarm yok. İzleme listesindeyse bilanço, sert hareket, yönetici alımı ve büyük federal sözleşmeler için ayrıca otomatik bildirim alırsın.</p>}
+          </div>
+        </div>
+      </section>
 
       {insiders ? <InsiderTrades trades={insiders} /> : null}
 

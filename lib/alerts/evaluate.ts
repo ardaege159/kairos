@@ -14,6 +14,10 @@ export const ALERT_LABEL: Record<AlertKind, string> = {
   score_below: "Kairos Skoru şunun altına inerse",
 };
 
+export const ALERT_SHORT: Record<AlertKind, string> = {
+  price_above: "Fiyat ≥", price_below: "Fiyat ≤", move_abs: "Günlük hareket ≥", score_above: "Skor ≥", score_below: "Skor ≤",
+};
+
 const usd = (v: number) => `${v.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $`;
 const pct = (v: number) => `%${(Math.abs(v) * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}`;
 
