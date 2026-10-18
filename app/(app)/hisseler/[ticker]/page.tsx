@@ -14,6 +14,7 @@ import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
+import { ValuationSection } from "@/components/stocks/valuation-section";
 import { AlertForm, DeleteAlertButton } from "@/components/alerts/alert-form";
 import { getAlerts } from "@/lib/data/alerts";
 import { ALERT_SHORT } from "@/lib/alerts/evaluate";
@@ -232,6 +233,9 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             {stock.latest_period ? formatPeriod(stock.latest_period) : "—"}.
           </p>
           <QuarterCharts data={quarterPoints} />
+          <Suspense fallback={<div className="glass-card mt-4 h-72 animate-pulse" aria-label="Değerleme geçmişi yükleniyor" />}>
+            <ValuationSection ticker={stock.ticker} quarters={quarters} price={stock.price} asOf={stock.as_of} />
+          </Suspense>
           <details className="glass-card mt-4 p-5">
             <summary className="cursor-pointer text-sm font-medium">Çeyreklik sonuçları tablo olarak göster</summary>
             <div className="mt-3 overflow-x-auto">
