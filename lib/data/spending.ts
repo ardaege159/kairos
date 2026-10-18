@@ -33,10 +33,14 @@ export async function getCompanySpending(opts: { sector?: string; tickers?: stri
 
 /** Federal contract totals per sector (matched companies only). */
 export async function getSectorSpending(): Promise<Record<string, number>> {
+  return (await getSpendingSummary()).bySector;
+}
+
+export async function getSpendingSummary(): Promise<{ bySector: Record<string, number>; companies: number; total: number }> {
   const rows = await getCompanySpending({ limit: 1000 });
-  const out: Record<string, number> = {};
-  for (const r of rows) if (r.sector) out[r.sector] = (out[r.sector] ?? 0) + r.amount;
-  return out;
+  const bySector: Record<string, number> = {};
+  for (const r of rows) if (r.sector) bySector[r.sector] = (bySector[r.sector] ?? 0) + r.amount;
+  return { bySector, companies: rows.length, total: rows.reduce((a, r) => a + r.amount, 0) };
 }
 
 export async function getSpendingActions(opts: { ticker?: string; matchedOnly?: boolean; limit?: number } = {}): Promise<SpendingAction[]> {

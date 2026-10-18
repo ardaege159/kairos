@@ -23,12 +23,13 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 | Küresel haber | RSS: CNBC, MarketWatch, Investing.com, FT, BBC | `lib/news/topics.ts` ile konu/sektör. GDELT kısa sürede 429 verip IP'yi kısıtladı, kullanılmıyor. |
 | Ekonomik takvim | FRED releases/dates + federalreserve.gov FOMC sayfası | `lib/calendar/releases.ts` filtresi. |
 | Bilanço takvimi | Alpha Vantage EARNINGS_CALENDAR (günde 1 istek) | |
+| Federal harcama | USAspending v2: `spending_by_category/recipient` (12 ay, ilk 500 alıcı) + `recipient/{id}` ana şirket + `spending_by_transaction` (30 gün) | `lib/spending/match.ts` ile isim eşleştirme; ana şirketler `spending_recipients`'te önbellekli. |
 
 ## Supabase
 - Proje: `kairos` (ref `jfyiuodilzjjtpfwyfjw`, eu-west-1, org `ntqsfcvauhmkwfqzyjxm`). URL ve publishable key `.env.local`'de. Eski duraklatılmış "ardaege159's Project" kullanılmıyor.
 
 ## Durum
 - Aşama 0 tamamlandı. Aşama 1: iskelet + tema + Türkçe menü + boş sayfalar (Bugün dahil) bitti (`phase-1-scaffold` dalı). Supabase Auth: e-posta+şifre girişi (şifre Ayarlar'dan belirlenir) ve yedek magic link; ( `/giris`, `proxy.ts`, `getOwner()` DAL, `OWNER_EMAIL` kısıtı); sahibin gerçek girişi test edilmedi. Kalan: tablolar gelince RLS, Supabase panelinde yeni kayıtları kapatmak, Vercel önizleme. Aşamaların listesi `PLAN.md`'de.
-- Bitti: tüm ABD hisseleri + ETF (~12 bin, sunucu tarafı sayfalama `stock_list` view), hisse/ETF detay, Karşılaştır (arama kutusu `components/stock-search.tsx` + `/api/arama`), Sektörler, Bugün, Piyasa ve haberler, hisse haberleri, Kairos Skoru haber bölümü. Veri: `npm run veri:yukle` (hepsi; ilk sefer SIC sorguları yüzünden ~40 dk), `npm run veri:fiyat`, `npm run veri:haber`. Sıradaki: Vercel + günlük cron, Panel sayfası, izleme listesi.
+- Bitti: tüm ABD hisseleri + ETF (~12 bin, sunucu tarafı sayfalama `stock_list` view), hisse/ETF detay, Karşılaştır (arama kutusu `components/stock-search.tsx` + `/api/arama`), Sektörler, Bugün, Piyasa ve haberler, hisse haberleri, Kairos Skoru haber bölümü, şirket logoları (Brandfetch, ETF'lerde harf rozeti), izleme listesi + Panel, Karşılaştır'da sektörle kıyas (SPDR sektör ETF'leri), sektör detay sayfası (`lib/sectors/insights.ts`, kural tabanlı açıklama), Federal harcamalar sayfası ve hisse sayfasında federal sözleşmeler. Veri: `npm run veri:yukle` (hepsi; ilk sefer SIC ve alıcı sorguları yüzünden uzun), `veri:fiyat`, `veri:haber`, `veri:harcama`. Sıradaki: Vercel + günlük cron, ETF'leri işlem hacmine göre sıralama.
 - Kabuk notu: `node -e "..."` içinde Markdown ters tırnağı kullanma (bash komut olarak çalıştırır); dosya düzenlemelerinde Edit aracı kullan.
 - Stitch ekranlarının tam boy görüntüleri bekleniyor (`design/` klasörüne). Chrome uzantısı Stitch sekmesinde donuyor; tekrar denemek yerine kullanıcıdan görüntü iste.

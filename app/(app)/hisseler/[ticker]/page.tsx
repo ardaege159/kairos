@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/info-tip";
 import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
 import { getWatchlist } from "@/lib/data/watchlist";
+import { getCompanySpending, getSpendingActions } from "@/lib/data/spending";
 import { NewsList } from "@/components/news/news-list";
 import { HealthGauges } from "@/components/stocks/health-gauges";
 import { PriceChart } from "@/components/stocks/price-chart";
@@ -56,7 +57,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -64,7 +65,10 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve(null) : getNextEarnings(stock.ticker),
     requestTime(),
     getWatchlist(),
+    isEtf ? Promise.resolve([]) : getCompanySpending({ tickers: [stock.ticker], limit: 1 }),
+    isEtf ? Promise.resolve([]) : getSpendingActions({ ticker: stock.ticker, limit: 8 }),
   ]);
+  const federal = spending[0];
   const ratio =(a?: number, b?: number) => (a == null || b == null || b === 0 ? null : a / b);
   const quarterPoints: QuarterPoint[] = quarters
     .filter((q) => q.values.revenue != null || q.values.net_income != null)
@@ -189,6 +193,43 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
             Bu şirketin SEC&apos;e verdiği raporlarda standart (US-GAAP) bilanço kalemleri bulunamadı. Genelde yabancı şirketler
             (IFRS ile raporlayanlar) ya da çok yeni halka açılan şirketler böyledir. Fiyat verileri yine de güncel.
           </p>
+        </section>
+      ) : null}
+
+      {federal || spendingActions.length ? (
+        <section className="glass-card mt-8 p-5" aria-labelledby="fed-title">
+          <h2 id="fed-title" className="flex items-center gap-1 font-semibold">
+            Federal sözleşmeler
+            <InfoTip title="Federal sözleşmeler">
+              USAspending.gov verisine göre ABD federal kurumlarının bu şirketle (ve yan kuruluşlarıyla) yaptığı sözleşmeler. Gelirin ne
+              kadarının devletten geldiğini anlamaya yardım eder.
+            </InfoTip>
+          </h2>
+          <div className="mt-3 grid gap-6 md:grid-cols-3">
+            <div>
+              <p className="text-sm text-ink-muted">Son 12 ay sözleşme tutarı</p>
+              <p className="mt-1 text-2xl font-bold num">{formatMoney(federal?.amount)}</p>
+              {federal?.recipients.length ? (
+                <p className="mt-1 text-xs text-ink-muted">Alıcı birimler: {federal.recipients.slice(0, 4).join(", ")}{federal.recipients.length > 4 ? "…" : ""}</p>
+              ) : null}
+            </div>
+            <div className="md:col-span-2">
+              <p className="mb-2 text-sm text-ink-muted">Son 30 günün büyük ödemeleri</p>
+              {spendingActions.length ? (
+                <ul className="space-y-1.5 text-sm">
+                  {spendingActions.map((a) => (
+                    <li key={a.id} className="grid grid-cols-[5.5rem_minmax(0,1fr)_5.5rem] gap-3">
+                      <span className="text-ink-muted num">{formatDate(a.action_date)}</span>
+                      <span className="truncate" title={a.description ?? undefined}>{a.agency}</span>
+                      <span className="text-right font-medium num">{formatMoney(a.amount)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-ink-muted">Son 30 günün en büyük 500 ödemesi arasında bu şirket yok.</p>
+              )}
+            </div>
+          </div>
         </section>
       ) : null}
 
