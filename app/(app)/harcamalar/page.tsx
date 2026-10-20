@@ -124,7 +124,7 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
                 <QuarterBars quarters={t.quarters.slice(-12)} height={44} />
                 <div className="flex flex-wrap gap-1.5">
                   {[...new Set(t.top_recipients.filter((r) => r.ticker).map((r) => r.ticker!))].slice(0, 4).map((tk) => (
-                    <span key={tk} className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-0.5 text-xs font-semibold">
+                    <span key={tk} className="inline-flex items-center gap-1 rounded-full bg-elevated/70 px-2 py-0.5 text-xs font-semibold">
                       <TickerLogo ticker={tk} size={14} /> {tk}
                     </span>
                   ))}
@@ -214,9 +214,9 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <div role="group" aria-label="Sıralama" className="flex rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
               <Link href={qs({ sirala: undefined })} aria-current={!sortByAmount ? "true" : undefined}
-                className={`rounded-md px-3 py-1 font-medium ${!sortByAmount ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>En yeni</Link>
+                className={`rounded-md px-3 py-1 font-medium ${!sortByAmount ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>En yeni</Link>
               <Link href={qs({ sirala: "tutar" })} aria-current={sortByAmount ? "true" : undefined}
-                className={`rounded-md px-3 py-1 font-medium ${sortByAmount ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>En büyük</Link>
+                className={`rounded-md px-3 py-1 font-medium ${sortByAmount ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>En büyük</Link>
             </div>
             <Link href={qs({ tum: showAll ? undefined : "1" })} className="text-primary hover:underline">
               {showAll ? "Sadece borsadaki şirketler" : "Özel şirketler dahil tümü"}
@@ -240,7 +240,7 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
                 const tags = themesOf([a.description, a.psc_desc, a.naics_desc].filter(Boolean).join(" "));
                 const href = `/harcamalar/islem/${a.id}`;
                 return (
-                  <tr key={a.id} className="group relative border-t border-outline-soft/40 align-top hover:bg-white/50">
+                  <tr key={a.id} className="group relative border-t border-outline-soft/40 align-top hover:bg-elevated/50">
                     <td className="py-2.5 pr-4 whitespace-nowrap text-ink-muted num">{formatDate(a.action_date)}</td>
                     <td className="py-2.5 pr-4">
                       {a.ticker ? (

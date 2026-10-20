@@ -6,7 +6,7 @@ import { TickerLogo } from "@/components/ticker-logo";
 import { addPosition } from "@/app/(app)/portfoy/actions";
 import { formatMoney } from "@/lib/format";
 
-const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary focus:bg-white num";
+const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-3 py-2 text-sm outline-none focus:border-primary focus:bg-elevated num";
 
 /** Add a position: pick a ticker (price prefilled), then shares or an amount, price and date. */
 export function PositionForm({ portfolioId, today }: { portfolioId: string; today: string }) {
@@ -75,7 +75,7 @@ export function PositionForm({ portfolioId, today }: { portfolioId: string; toda
       <div role="group" aria-label="Miktar türü" className="flex self-start rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
         {(["amount", "shares"] as const).map((m) => (
           <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
-            className={`rounded-md px-3 py-1 font-medium ${mode === m ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>
+            className={`rounded-md px-3 py-1 font-medium ${mode === m ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>
             {m === "amount" ? "Tutar ($)" : "Adet"}
           </button>
         ))}

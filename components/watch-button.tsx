@@ -28,7 +28,7 @@ export function WatchButton({ ticker, watched, compact = false }: { ticker: stri
   return (
     <button type="button" onClick={onClick} disabled={pending} aria-pressed={optimistic}
       className={`inline-flex items-center gap-2 rounded-[var(--radius-control)] px-4 py-2 text-sm font-semibold disabled:opacity-70 ${
-        optimistic ? "border border-secondary/40 bg-white/70 text-secondary" : "bg-gradient-to-r from-primary to-secondary text-white shadow-[0_10px_30px_rgb(99_102_241/0.25)]"
+        optimistic ? "border border-secondary/40 bg-elevated/70 text-secondary" : "bg-gradient-to-r from-primary to-secondary text-white shadow-[0_10px_30px_rgb(99_102_241/0.25)]"
       }`}>
       <Star size={16} className={optimistic ? "fill-secondary" : ""} aria-hidden />
       {optimistic ? "İzleniyor" : "İzleme listesine ekle"}

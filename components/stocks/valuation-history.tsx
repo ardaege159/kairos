@@ -35,7 +35,7 @@ export function ValuationHistory({ points }: { points: ValuationPoint[] }) {
     const p = payload?.[0]?.payload as { date: string; v: number } | undefined;
     if (!active || !p) return null;
     return (
-      <div className="rounded-[var(--radius-control)] border border-outline-soft bg-white/95 px-3 py-2 text-sm shadow-lg num">
+      <div className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/95 px-3 py-2 text-sm shadow-lg num">
         <p className="text-xs text-ink-muted">{formatDate(p.date)}</p>
         <p className="font-semibold">{m.label} {x1(p.v)}</p>
       </div>
@@ -48,7 +48,7 @@ export function ValuationHistory({ points }: { points: ValuationPoint[] }) {
         <div role="group" aria-label="Çarpan" className="flex rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
           {available.map((a) => (
             <button key={a.key} type="button" aria-pressed={m.key === a.key} onClick={() => setKey(a.key)}
-              className={`rounded-md px-3 py-1 font-medium ${m.key === a.key ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>{a.label}</button>
+              className={`rounded-md px-3 py-1 font-medium ${m.key === a.key ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>{a.label}</button>
           ))}
         </div>
         {med != null && diff != null ? (
@@ -67,8 +67,8 @@ export function ValuationHistory({ points }: { points: ValuationPoint[] }) {
             <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={40} tick={AXIS}
               tickFormatter={(d: string) => new Intl.DateTimeFormat("tr-TR", { month: "short", year: "2-digit", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`))} />
             <YAxis tickLine={false} axisLine={false} width={40} tick={AXIS} domain={["auto", "auto"]} tickFormatter={(v: number) => x1(v)} />
-            <Tooltip content={Tip} cursor={{ stroke: "#767586", strokeDasharray: "3 3" }} />
-            {med != null ? <ReferenceLine y={med} stroke="#767586" strokeDasharray="5 4" label={{ value: "medyan", position: "insideTopLeft", fill: "#464554", fontSize: 11 }} /> : null}
+            <Tooltip content={Tip} cursor={{ stroke: "var(--color-outline)", strokeDasharray: "3 3" }} />
+            {med != null ? <ReferenceLine y={med} stroke="var(--color-outline)" strokeDasharray="5 4" label={{ value: "medyan", position: "insideTopLeft", fill: "var(--color-ink-muted)", fontSize: 11 }} /> : null}
             <Line type="linear" dataKey="v" name={m.label} stroke={SERIES[0]} strokeWidth={2} dot={{ r: 3 }} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>

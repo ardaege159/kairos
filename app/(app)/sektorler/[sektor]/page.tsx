@@ -157,8 +157,8 @@ async function SectorDetail({ params }: { params: Promise<{ sektor: string }> })
           </h2>
           <p className="mt-1 mb-4 text-sm text-ink-muted">Başlangıç noktası %0 olacak şekilde.</p>
           <PerformanceChart series={[
-            { ticker: etf, points: etfPrices, color: "#4648d4", label: `${etf} · ${label}` },
-            { ticker: "SPY", points: spyPrices, color: "#767586", dashed: true, label: "SPY · S&P 500" },
+            { ticker: etf, points: etfPrices, color: "var(--color-primary)", label: `${etf} · ${label}` },
+            { ticker: "SPY", points: spyPrices, color: "var(--color-outline)", dashed: true, label: "SPY · S&P 500" },
           ]} />
         </section>
       ) : null}

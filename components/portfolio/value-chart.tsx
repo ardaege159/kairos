@@ -12,7 +12,7 @@ function makeTooltip(symbol: "$" | "₺") {
     if (!active || !p) return null;
     const pnl = p.value - p.invested;
     return (
-      <div className="rounded-[var(--radius-control)] border border-outline-soft bg-white/95 px-3 py-2 text-sm shadow-lg num">
+      <div className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/95 px-3 py-2 text-sm shadow-lg num">
         <p className="text-xs text-ink-muted">{formatDate(p.date)}</p>
         <p className="font-semibold">Değer {formatMoney(p.value, symbol)}</p>
         <p className="text-ink-muted">Yatırılan {formatMoney(p.invested, symbol)}</p>
@@ -40,10 +40,10 @@ export function ValueChart({ points, symbol = "$" }: { points: Point[]; symbol?:
           <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS}
             tickFormatter={(d: string) => new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`))} />
           <YAxis tickFormatter={(v: number) => formatMoney(v, symbol).replace(` ${symbol}`, "")} tickLine={false} axisLine={false} width={64} tick={AXIS} domain={["auto", "auto"]} />
-          <Tooltip content={makeTooltip(symbol)} cursor={{ stroke: "#767586", strokeDasharray: "3 3" }} />
-          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#464554" }} />
+          <Tooltip content={makeTooltip(symbol)} cursor={{ stroke: "var(--color-outline)", strokeDasharray: "3 3" }} />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "var(--color-ink-muted)" }} />
           <Area type="linear" dataKey="value" name="Portföy değeri" stroke={SERIES[0]} strokeWidth={2} fill="url(#pfFill)" isAnimationActive={false} />
-          <Line type="stepAfter" dataKey="invested" name="Yatırılan tutar" stroke="#767586" strokeWidth={1.5} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
+          <Line type="stepAfter" dataKey="invested" name="Yatırılan tutar" stroke="var(--color-outline)" strokeWidth={1.5} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
           {hasBench ? <Line type="linear" dataKey="benchmark" name="Aynı alımlar SPY olsaydı" stroke={SERIES[1]} strokeWidth={1.5} dot={false} isAnimationActive={false} connectNulls /> : null}
         </ComposedChart>
       </ResponsiveContainer>

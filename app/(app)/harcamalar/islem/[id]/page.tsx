@@ -72,13 +72,13 @@ async function Detail({ params }: { params: Promise<{ id: string }> }) {
             <p className="mt-1 text-sm text-ink-muted">{a.description}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {a.ticker ? (
-                <Link href={`/hisseler/${a.ticker}`} className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-sm hover:bg-white">
+                <Link href={`/hisseler/${a.ticker}`} className="inline-flex items-center gap-2 rounded-full bg-elevated/70 px-3 py-1.5 text-sm hover:bg-elevated">
                   <TickerLogo ticker={a.ticker} size={20} />
                   <span className="font-semibold">{a.ticker}</span>
                   <span className="text-ink-muted">{stock?.name ?? a.recipient_name}</span>
                 </Link>
               ) : (
-                <span className="rounded-full bg-white/70 px-3 py-1.5 text-sm">{a.recipient_name} <span className="text-ink-muted">(borsada değil)</span></span>
+                <span className="rounded-full bg-elevated/70 px-3 py-1.5 text-sm">{a.recipient_name} <span className="text-ink-muted">(borsada değil)</span></span>
               )}
               {themes.map((t) => (
                 <Link key={t.key} href={`/harcamalar/tema/${t.key}`} className="rounded-full bg-primary-soft/70 px-2.5 py-1 text-xs font-semibold text-primary-strong hover:underline">

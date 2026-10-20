@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { FreshnessBadge } from "@/components/freshness-badge";
 import { GlobalSearch } from "@/components/global-search";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationBell, NotificationBellFallback } from "@/components/alerts/notification-bell";
 import { MobileNav, MobileNavView, Sidebar, SidebarView } from "@/components/sidebar";
 
@@ -20,6 +21,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <Suspense fallback={null}>
               <FreshnessBadge />
             </Suspense>
+            <ThemeToggle />
             <Suspense fallback={<NotificationBellFallback />}>
               <NotificationBell />
             </Suspense>

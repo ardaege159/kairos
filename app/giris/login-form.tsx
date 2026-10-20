@@ -6,7 +6,7 @@ import { login, type LoginState } from "./actions";
 const initial: LoginState = { status: "idle" };
 
 const inputClass =
-  "rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2.5 outline-none focus:border-primary focus:bg-white";
+  "rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-3 py-2.5 outline-none focus:border-primary focus:bg-elevated";
 
 export function LoginForm({ linkError }: { linkError?: boolean }) {
   const [state, action, pending] = useActionState(login, initial);

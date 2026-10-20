@@ -36,7 +36,7 @@ export function CopyModelButton({ name, picks }: { name: string; picks: { ticker
   const [pending, start] = useTransition();
   return (
     <button type="button" disabled={pending} onClick={() => start(() => copyModel(name, picks))}
-      className="rounded-[var(--radius-control)] border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-white/70 disabled:opacity-60">
+      className="rounded-[var(--radius-control)] border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-elevated/70 disabled:opacity-60">
       {pending ? "Kopyalanıyor…" : "Portföylerime kopyala (10.000 $)"}
     </button>
   );

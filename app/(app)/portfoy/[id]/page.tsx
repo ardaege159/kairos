@@ -86,9 +86,9 @@ async function Detail({ params, searchParams }: { params: Promise<{ id: string }
           {fx ? (
             <div role="group" aria-label="Para birimi" className="mb-2 inline-flex rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
               <Link href={`/portfoy/${portfolio.id}`} aria-current={sym === "$" ? "true" : undefined}
-                className={`rounded-md px-3 py-1 font-medium ${sym === "$" ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>Dolar</Link>
+                className={`rounded-md px-3 py-1 font-medium ${sym === "$" ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>Dolar</Link>
               <Link href={`/portfoy/${portfolio.id}?para=tl`} aria-current={sym === "₺" ? "true" : undefined}
-                className={`rounded-md px-3 py-1 font-medium ${sym === "₺" ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>TL</Link>
+                className={`rounded-md px-3 py-1 font-medium ${sym === "₺" ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>TL</Link>
             </div>
           ) : null}
           <p className="text-3xl font-bold tracking-tight num">{formatMoney(value, sym)}</p>

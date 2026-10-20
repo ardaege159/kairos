@@ -17,7 +17,7 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
       className={`flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm transition-colors ${
         active
           ? "bg-primary-soft/70 font-semibold text-primary-strong"
-          : "text-ink-muted hover:bg-white/60 hover:text-ink"
+          : "text-ink-muted hover:bg-elevated/60 hover:text-ink"
       }`}
     >
       <Icon size={18} strokeWidth={1.5} aria-hidden />

@@ -6,7 +6,7 @@ import { TickerLogo } from "@/components/ticker-logo";
 import { createAlert, deleteAlert } from "@/app/(app)/bildirimler/actions";
 import { ALERT_LABEL, type AlertKind } from "@/lib/alerts/evaluate";
 
-const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary focus:bg-white";
+const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-3 py-2 text-sm outline-none focus:border-primary focus:bg-elevated";
 
 /** Create an alert. With `ticker` the stock is fixed (stock page); without it, a search picks one. */
 export function AlertForm({ ticker: fixed, price }: { ticker?: string; price?: number | null }) {

@@ -17,7 +17,7 @@ export function ComparePicker({ selected }: { selected: string[] }) {
     <div className={`glass-card p-4 ${pending ? "opacity-70" : ""}`}>
       <div className="flex flex-wrap items-center gap-2">
         {selected.map((t, i) => (
-          <span key={t} className="inline-flex items-center gap-2 rounded-full border border-outline-soft bg-white/70 py-1 pr-1 pl-3 text-sm font-semibold">
+          <span key={t} className="inline-flex items-center gap-2 rounded-full border border-outline-soft bg-elevated/70 py-1 pr-1 pl-3 text-sm font-semibold">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: SERIES[i] }} aria-hidden />
             <TickerLogo ticker={t} size={20} />
             {t}

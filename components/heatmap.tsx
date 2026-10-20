@@ -18,7 +18,7 @@ type PeriodKey = (typeof PERIODS)[number]["key"];
 // Diverging scale: loss red -> neutral grey -> gain green, saturating at ±range.
 const LOSS = [186, 26, 26], NEUTRAL = [120, 124, 140], GAIN = [0, 128, 84];
 function color(v: number | null, range: number): string {
-  if (v == null) return "rgb(200 202 210)";
+  if (v == null) return "var(--color-surface-high)";
   const t = Math.max(-1, Math.min(1, v / range));
   const to = t < 0 ? LOSS : GAIN, a = Math.abs(t);
   const c = NEUTRAL.map((n, i) => Math.round(n + (to[i] - n) * a));
@@ -61,7 +61,7 @@ export function Heatmap({ items, height = 560 }: { items: HeatItem[]; height?: n
         <div role="group" aria-label="Dönem" className="flex rounded-[var(--radius-control)] bg-surface-container/70 p-1 text-xs">
           {PERIODS.map((p) => (
             <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)}
-              className={`rounded-md px-3 py-1 font-medium ${period === p.key ? "bg-white text-ink shadow-sm" : "text-ink-muted"}`}>
+              className={`rounded-md px-3 py-1 font-medium ${period === p.key ? "bg-elevated text-ink shadow-sm" : "text-ink-muted"}`}>
               {p.label}
             </button>
           ))}
@@ -72,7 +72,7 @@ export function Heatmap({ items, height = 560 }: { items: HeatItem[]; height?: n
           <span>{formatPercent(range, true)}</span>
         </div>
       </div>
-      <div ref={box} className="relative w-full overflow-hidden rounded-[var(--radius-control)] bg-white/40" style={{ height: h }}
+      <div ref={box} className="relative w-full overflow-hidden rounded-[var(--radius-control)] bg-elevated/40" style={{ height: h }}
         onMouseLeave={() => setHover(null)}>
         {layout.map((s) => (
           <div key={s.item.sector}>

@@ -20,7 +20,7 @@ function MoneyTooltip({ active, payload, label }: TooltipContentProps) {
   const v = payload?.[0]?.value;
   if (!active || v == null) return null;
   return (
-    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-white/95 px-3 py-2 text-sm shadow-lg num">
+    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/95 px-3 py-2 text-sm shadow-lg num">
       <p className="text-xs text-ink-muted">{formatPeriod(String(label))}</p>
       <p className="font-semibold">{formatMoney(Number(v))}</p>
     </div>
@@ -30,7 +30,7 @@ function MoneyTooltip({ active, payload, label }: TooltipContentProps) {
 function MarginTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-white/95 px-3 py-2 text-sm shadow-lg num">
+    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/95 px-3 py-2 text-sm shadow-lg num">
       <p className="mb-1 text-xs text-ink-muted">{formatPeriod(String(label))}</p>
       {payload.map((p) => (
         <p key={String(p.dataKey)} className="flex items-center gap-2">
@@ -55,7 +55,7 @@ function MoneyBars({ title, data, dataKey, color }: { title: string; data: Quart
               <CartesianGrid vertical={false} stroke={GRID} />
               <XAxis dataKey="period" tickFormatter={formatPeriod} tickLine={false} axisLine={false} tick={AXIS} interval="preserveStartEnd" minTickGap={8} />
               <YAxis tickFormatter={compactMoney} tickLine={false} axisLine={false} width={64} tick={AXIS} />
-              <ReferenceLine y={0} stroke="#767586" />
+              <ReferenceLine y={0} stroke="var(--color-outline)" />
               <Tooltip content={MoneyTooltip} cursor={{ fill: "rgb(70 72 212 / 0.06)" }} />
               <Bar dataKey={dataKey} radius={[4, 4, 4, 4]} isAnimationActive={false}>
                 {points.map((p) => (
@@ -100,8 +100,8 @@ export function QuarterCharts({ data }: { data: QuarterPoint[] }) {
                 <CartesianGrid vertical={false} stroke={GRID} />
                 <XAxis dataKey="period" tickFormatter={formatPeriod} tickLine={false} axisLine={false} tick={AXIS} interval="preserveStartEnd" minTickGap={8} />
                 <YAxis tickFormatter={(v: number) => formatPercent(v)} tickLine={false} axisLine={false} width={48} tick={AXIS} />
-                <Tooltip content={MarginTooltip} cursor={{ stroke: "#767586", strokeDasharray: "3 3" }} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#464554" }} />
+                <Tooltip content={MarginTooltip} cursor={{ stroke: "var(--color-outline)", strokeDasharray: "3 3" }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "var(--color-ink-muted)" }} />
                 {margins.map((m) => (
                   <Line key={m.key} type="linear" dataKey={m.key} name={m.name} stroke={m.color} strokeWidth={2} connectNulls
                     dot={{ r: 3, strokeWidth: 0, fill: m.color }} activeDot={{ r: 5, stroke: "#fff", strokeWidth: 2 }} isAnimationActive={false} />

@@ -31,7 +31,7 @@ import { RangeCard } from "@/components/stocks/range-card";
 import { ScoreCard } from "@/components/stocks/score-card";
 import { SectorCompare } from "@/components/stocks/sector-compare";
 import { getEarningsHistory, getNextEarnings, getTickerNews, requestTime } from "@/lib/data/news";
-import { getPrices, getQuarters, getSectorStats, getStock, searchStocks, type SectorStat } from "@/lib/data/stocks";
+import { getPrices, getQuarters, getScoreHistory, getSectorStats, getStock, searchStocks, type SectorStat } from "@/lib/data/stocks";
 import { formatDate, formatMetric, formatMoney, formatPercent, formatPeriod, formatPrice } from "@/lib/format";
 import { METRIC_BY_KEY } from "@/lib/metrics/definitions";
 import { sectorName } from "@/lib/sectors";
@@ -72,7 +72,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory, scoreHistory] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -85,6 +85,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf || !stock.core ? Promise.resolve(null) : getInsiderTrades(stock.ticker),
     getAlerts(stock.ticker),
     isEtf ? Promise.resolve([]) : getEarningsHistory(stock.ticker),
+    isEtf ? Promise.resolve([]) : getScoreHistory(stock.ticker),
   ]);
   const federal = spending[0];
   const points = isEtf ? null : stockPoints({
@@ -175,7 +176,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           ) : null}
         </div>
         <div className="flex flex-col gap-4">
-          {!isEtf ? <ScoreCard score={stock.score} parts={stock.score_parts} /> : null}
+          {!isEtf ? <ScoreCard score={stock.score} parts={stock.score_parts} history={scoreHistory} /> : null}
           <RangeCard price={stock.price} metrics={stock.metrics} />
           {isEtf ? (
             <section className="glass-card p-5" aria-labelledby="etf-info">

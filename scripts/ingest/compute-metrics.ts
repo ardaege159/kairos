@@ -173,6 +173,15 @@ try {
     const { error } = await db.from("stock_metrics").upsert(metricRows.slice(i, i + 500), { onConflict: "ticker" });
     if (error) throw error;
   }
+  // Daily score snapshot for core tickers (keyed by the price date, so re-runs overwrite the same day).
+  const coreSet = new Set(rows.filter((r) => r.c.core).map((r) => r.c.ticker));
+  const history = metricRows.filter((r) => r.score != null && coreSet.has(r.ticker) && r.as_of)
+    .map((r) => ({ ticker: r.ticker, date: r.as_of, score: r.score, parts: r.score_parts }));
+  for (let i = 0; i < history.length; i += 1000) {
+    const { error } = await db.from("score_history").upsert(history.slice(i, i + 1000), { onConflict: "ticker,date" });
+    if (error) throw error;
+  }
+
   const { error: se } = await db.from("sector_stats").upsert(sectorStats.map((s) => ({ ...s, updated_at: now })), { onConflict: "sector,metric" });
   if (se) throw se;
 

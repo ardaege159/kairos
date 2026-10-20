@@ -21,8 +21,8 @@ export function TickerLogo({ ticker, size = 28, etf = false, className = "" }: {
     return (
       <span
         aria-hidden
-        className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-primary-strong ${className}`}
-        style={{ ...box, background: tint(ticker), fontSize: Math.max(9, size * 0.36) }}
+        className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold ${className}`}
+        style={{ ...box, background: tint(ticker), color: "#2f2ebe", fontSize: Math.max(9, size * 0.36) }}
       >
         {ticker.replace(/[^A-Z]/g, "").slice(0, ticker.length > 3 ? 2 : 3)}
       </span>
@@ -40,7 +40,7 @@ export function TickerLogo({ ticker, size = 28, etf = false, className = "" }: {
       decoding="async"
       referrerPolicy="strict-origin-when-cross-origin"
       onError={() => setFailed(true)}
-      className={`shrink-0 rounded-full bg-white object-contain ring-1 ring-outline-soft/60 ${className}`}
+      className={`shrink-0 rounded-full bg-elevated object-contain ring-1 ring-outline-soft/60 ${className}`}
       style={box}
     />
   );

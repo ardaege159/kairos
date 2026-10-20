@@ -17,11 +17,11 @@ function Gauge({ metric, value, stat, verdict }: { metric: string; value: number
   return (
     <div className="flex items-center gap-4">
       <svg viewBox="0 0 112 60" className="h-20 w-36 shrink-0" role="img" aria-label={`${d.label} ${formatMetric(value, d.format)}, sektör medyanı ${formatMetric(median, d.format)}`}>
-        <path d={arc(1)} fill="none" stroke="#e6e8ea" strokeWidth="9" strokeLinecap="round" />
-        {value != null && frac > 0 ? <path d={arc(frac)} fill="none" stroke="#4648d4" strokeWidth="9" strokeLinecap="round" /> : null}
+        <path d={arc(1)} fill="none" stroke="var(--color-surface-high)" strokeWidth="9" strokeLinecap="round" />
+        {value != null && frac > 0 ? <path d={arc(frac)} fill="none" stroke="var(--color-primary)" strokeWidth="9" strokeLinecap="round" /> : null}
         {value != null ? <circle cx={ex} cy={ey} r="3" fill="#fff" /> : null}
         {median != null ? (
-          <line x1={mx1} y1={my1} x2={cx + (mx1 - cx) * 1.28} y2={cy + (my1 - cy) * 1.28} stroke="#191c1e" strokeWidth="2" />
+          <line x1={mx1} y1={my1} x2={cx + (mx1 - cx) * 1.28} y2={cy + (my1 - cy) * 1.28} stroke="var(--color-ink)" strokeWidth="2" />
         ) : null}
         <text x={cx} y={cy - 4} textAnchor="middle" className="fill-ink text-[15px] font-semibold">{formatMetric(value, d.format)}</text>
       </svg>

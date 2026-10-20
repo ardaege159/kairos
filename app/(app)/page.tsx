@@ -99,7 +99,7 @@ async function Dashboard() {
             <ul className="mt-2 flex flex-wrap gap-2">
               {soon.map(([t, e]) => (
                 <li key={t}>
-                  <Link href={`/hisseler/${t}`} className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1.5 text-sm hover:bg-white">
+                  <Link href={`/hisseler/${t}`} className="inline-flex items-center gap-2 rounded-full bg-elevated/70 px-3 py-1.5 text-sm hover:bg-elevated">
                     <TickerLogo ticker={t} size={18} />
                     <span className="font-semibold">{t}</span>
                     <span className="text-ink-muted">{formatDate(e.report_date)}</span>

@@ -101,8 +101,8 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
 
           <div className="flex flex-wrap items-center gap-3">
             <Link href={toggleHref} aria-pressed={withSector}
-              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${withSector ? "bg-primary text-white" : "bg-white/70 text-ink-muted hover:text-ink"}`}>
-              <span className={`h-3 w-3 rounded-full border-2 ${withSector ? "border-white bg-white/40" : "border-outline"}`} aria-hidden />
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${withSector ? "bg-primary text-white" : "bg-elevated/70 text-ink-muted hover:text-ink"}`}>
+              <span className={`h-3 w-3 rounded-full border-2 ${withSector ? "border-white bg-elevated/40" : "border-outline"}`} aria-hidden />
               Sektörüyle karşılaştır
             </Link>
             <InfoTip title="Sektörle karşılaştırma">
@@ -126,7 +126,7 @@ async function Comparison({ searchParams }: { searchParams: Promise<Record<strin
                 series={[
                   ...stocks.map((s, i) => ({ ticker: s.ticker, points: prices[i], color: SERIES[i] })),
                   ...sectors
-                    .map((sec, i) => ({ ticker: SECTOR_ETF[sec] ?? sec, points: sectorPrices[i], color: "#767586", dashed: true,
+                    .map((sec, i) => ({ ticker: SECTOR_ETF[sec] ?? sec, points: sectorPrices[i], color: "var(--color-outline)", dashed: true,
                       label: `${SECTOR_ETF[sec]} · ${sectorName(sec)} sektörü` }))
                     .filter((s) => s.points.length),
                 ]}

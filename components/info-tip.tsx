@@ -52,7 +52,7 @@ export function InfoTip({
         <span
           id={id}
           role="tooltip"
-          className={`absolute top-6 z-30 w-72 max-w-[80vw] rounded-[var(--radius-control)] border border-outline-soft bg-white p-3 text-left text-sm font-normal text-ink shadow-[0_10px_30px_rgb(99_102_241/0.18)] ${
+          className={`absolute top-6 z-30 w-72 max-w-[80vw] rounded-[var(--radius-control)] border border-outline-soft bg-elevated p-3 text-left text-sm font-normal text-ink shadow-[0_10px_30px_rgb(99_102_241/0.18)] ${
             align === "end" ? "right-0" : "left-0"
           }`}
         >

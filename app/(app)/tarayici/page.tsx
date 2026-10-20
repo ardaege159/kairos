@@ -17,7 +17,7 @@ type Params = Record<string, string | undefined>;
 const flat = (sp: Record<string, string | string[] | undefined>): Params =>
   Object.fromEntries(Object.entries(sp).map(([k, v]) => [k, typeof v === "string" ? v : undefined]));
 const href = (p: Params) => `/tarayici?${new URLSearchParams(Object.entries(p).filter((e): e is [string, string] => !!e[1])).toString()}`;
-const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-2 py-1.5 text-sm outline-none focus:border-primary focus:bg-white num";
+const input = "w-full rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-2 py-1.5 text-sm outline-none focus:border-primary focus:bg-elevated num";
 
 function fmt(key: string, v: number | null | undefined) {
   const f = filterFormat(key);
@@ -125,7 +125,7 @@ async function Results({ p }: { p: Params }) {
             </thead>
             <tbody className="num">
               {rows.map((s) => (
-                <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-white/50">
+                <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-elevated/50">
                   <td className="px-4 py-2.5">
                     <Link href={`/hisseler/${s.ticker}`} className="group flex items-center gap-3">
                       <TickerLogo ticker={s.ticker} size={28} />

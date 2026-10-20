@@ -67,7 +67,7 @@ export default function PortfoyPage() {
     <>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <PageHeader title="Portföy" description="Kendi portföylerini oluştur; kâr/zarar, değer geçmişi ve risk seviyesini takip et." />
-        <Link href="/portfoy/modeller" className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-primary/40 px-4 py-2 text-sm font-medium text-primary hover:bg-white/70">
+        <Link href="/portfoy/modeller" className="inline-flex items-center gap-2 rounded-[var(--radius-control)] border border-primary/40 px-4 py-2 text-sm font-medium text-primary hover:bg-elevated/70">
           <Sparkles size={16} aria-hidden /> Örnek portföyler
         </Link>
       </div>

@@ -246,3 +246,11 @@ export async function getPrices(ticker: string, core: boolean): Promise<PricePoi
   if (error) throw error;
   return (data ?? []).reverse().map((p) => ({ date: p.date, close: Number(p.close) }));
 }
+
+/** Daily Kairos Score snapshots for a ticker, oldest first (last ~1 year). */
+export async function getScoreHistory(ticker: string): Promise<{ date: string; score: number }[]> {
+  const supabase = await db();
+  const { data, error } = await supabase.from("score_history").select("date,score").eq("ticker", ticker).order("date", { ascending: false }).limit(370);
+  if (error) throw error;
+  return (data ?? []).reverse();
+}

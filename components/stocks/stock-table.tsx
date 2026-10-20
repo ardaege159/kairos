@@ -129,7 +129,7 @@ export function StockTable({
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Hisse kodu ya da şirket adı"
           aria-label="Listede ara"
-          className="min-w-0 flex-1 rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+          className="min-w-0 flex-1 rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-3 py-2 text-sm outline-none focus:border-primary"
         />
         <div role="group" aria-label="Kapsam" className="flex rounded-[var(--radius-control)] bg-surface-container/70 p-1">
           {UNIVERSES.map((u) => {
@@ -140,7 +140,7 @@ export function StockTable({
                 type="button"
                 aria-pressed={activeU}
                 onClick={() => update({ evren: u.key === "tumu" ? null : u.key, tur: null, ...(u.key === "etf" ? { sirala: "dollar_volume", yon: "desc" } : {}) })}
-                className={`rounded-md px-3 py-1 text-xs font-medium ${activeU ? "bg-white text-ink shadow-sm" : "text-ink-muted hover:text-ink"}`}
+                className={`rounded-md px-3 py-1 text-xs font-medium ${activeU ? "bg-elevated text-ink shadow-sm" : "text-ink-muted hover:text-ink"}`}
               >
                 {u.label}
               </button>
@@ -151,7 +151,7 @@ export function StockTable({
           value={params.get("sektor") ?? ""}
           onChange={(e) => update({ sektor: e.target.value || null })}
           aria-label="Sektör"
-          className="rounded-[var(--radius-control)] border border-outline-soft bg-white/70 px-3 py-2 text-sm outline-none focus:border-primary"
+          className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 px-3 py-2 text-sm outline-none focus:border-primary"
         >
           <option value="">Tüm sektörler</option>
           {sectors.map((s) => (
@@ -172,7 +172,7 @@ export function StockTable({
                   type="button"
                   aria-pressed={active}
                   onClick={() => update({ tur: c.key || null })}
-                  className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary text-white" : "bg-white/60 text-ink-muted hover:text-ink"}`}
+                  className={`rounded-full px-3 py-1 text-xs font-medium ${active ? "bg-primary text-white" : "bg-elevated/60 text-ink-muted hover:text-ink"}`}
                 >
                   {c.label}
                 </button>
@@ -205,7 +205,7 @@ export function StockTable({
           </thead>
           <tbody className="num">
             {rows.map((s) => (
-              <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-white/50">
+              <tr key={s.ticker} className="border-t border-outline-soft/40 hover:bg-elevated/50">
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
                     <WatchButton ticker={s.ticker} watched={!!s.watched} compact />
@@ -248,7 +248,7 @@ export function StockTable({
             type="button"
             disabled={page <= 1}
             onClick={() => update({ sayfa: String(page - 1) })}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-white/70 hover:text-ink disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-elevated/70 hover:text-ink disabled:opacity-40"
           >
             <ChevronLeft size={16} aria-hidden /> Önceki
           </button>
@@ -259,7 +259,7 @@ export function StockTable({
             type="button"
             disabled={page >= pages}
             onClick={() => update({ sayfa: String(page + 1) })}
-            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-white/70 hover:text-ink disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-[var(--radius-control)] px-3 py-1.5 text-ink-muted hover:bg-elevated/70 hover:text-ink disabled:opacity-40"
           >
             Sonraki <ChevronRight size={16} aria-hidden />
           </button>

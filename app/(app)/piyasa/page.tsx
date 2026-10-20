@@ -22,12 +22,12 @@ async function Market({ searchParams }: { searchParams: Promise<Record<string, s
     <div className="flex flex-col gap-4">
       <nav aria-label="Konu" className="flex flex-wrap gap-2">
         <Link href="/piyasa" aria-current={!topic ? "page" : undefined}
-          className={`rounded-full px-3 py-1 text-sm ${!topic ? "bg-primary text-white" : "bg-white/60 text-ink-muted hover:text-ink"}`}>
+          className={`rounded-full px-3 py-1 text-sm ${!topic ? "bg-primary text-white" : "bg-elevated/60 text-ink-muted hover:text-ink"}`}>
           Tümü
         </Link>
         {TOPICS.map((t) => (
           <Link key={t.key} href={`/piyasa?konu=${t.key}`} aria-current={topic === t.key ? "page" : undefined}
-            className={`rounded-full px-3 py-1 text-sm ${topic === t.key ? "bg-primary text-white" : "bg-white/60 text-ink-muted hover:text-ink"}`}>
+            className={`rounded-full px-3 py-1 text-sm ${topic === t.key ? "bg-primary text-white" : "bg-elevated/60 text-ink-muted hover:text-ink"}`}>
             {t.label}
           </Link>
         ))}

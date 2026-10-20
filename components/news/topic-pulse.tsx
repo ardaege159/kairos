@@ -25,7 +25,7 @@ export function TopicPulse({ items, linkBase }: { items: NewsItem[]; linkBase?: 
         return (
           <li key={topic}>
             {linkBase ? (
-              <Link href={`${linkBase}?konu=${topic}`} className="block rounded-md hover:bg-white/50" aria-label={`${label}: ${n} haber`}>
+              <Link href={`${linkBase}?konu=${topic}`} className="block rounded-md hover:bg-elevated/50" aria-label={`${label}: ${n} haber`}>
                 {bar}
               </Link>
             ) : (

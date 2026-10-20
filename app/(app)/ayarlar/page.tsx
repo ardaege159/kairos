@@ -22,7 +22,7 @@ async function Account() {
       <form action="/auth/cikis" method="post" className="mt-4">
         <button
           type="submit"
-          className="rounded-[var(--radius-control)] border border-primary/40 px-4 py-2 text-sm font-medium text-primary hover:bg-white/70"
+          className="rounded-[var(--radius-control)] border border-primary/40 px-4 py-2 text-sm font-medium text-primary hover:bg-elevated/70"
         >
           Çıkış yap
         </button>

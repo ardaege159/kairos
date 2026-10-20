@@ -115,13 +115,13 @@ export function StockSearch({
         onFocus={() => items.length && setOpen(true)}
         onKeyDown={onKey}
         placeholder={placeholder}
-        className="w-full rounded-[var(--radius-control)] border border-outline-soft bg-white/70 py-2 pr-3 pl-9 text-sm outline-none focus:border-primary focus:bg-white"
+        className="w-full rounded-[var(--radius-control)] border border-outline-soft bg-elevated/70 py-2 pr-3 pl-9 text-sm outline-none focus:border-primary focus:bg-elevated"
       />
       {showList ? (
         <ul
           id={listId}
           role="listbox"
-          className="absolute top-full z-30 mt-1 max-h-80 w-full overflow-auto rounded-[var(--radius-control)] border border-outline-soft bg-white py-1 shadow-[0_10px_30px_rgb(99_102_241/0.18)]"
+          className="absolute top-full z-30 mt-1 max-h-80 w-full overflow-auto rounded-[var(--radius-control)] border border-outline-soft bg-elevated py-1 shadow-[0_10px_30px_rgb(99_102_241/0.18)]"
         >
           {items.length === 0 ? (
             <li className="px-3 py-2 text-sm text-ink-muted">{loading ? "Aranıyor…" : "Eşleşen hisse ya da ETF yok."}</li>

@@ -12,7 +12,7 @@ const DASHES = ["6 4", "2 3", "8 3 2 3", "1 4"];
 function PerfTooltip({ active, payload, label }: TooltipContentProps) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-white/95 px-3 py-2 text-sm shadow-lg num">
+    <div className="rounded-[var(--radius-control)] border border-outline-soft bg-elevated/95 px-3 py-2 text-sm shadow-lg num">
       <p className="mb-1 text-xs text-ink-muted">{formatDate(String(label))}</p>
       {[...payload].sort((a, b) => Number(b.value) - Number(a.value)).map((p) => (
         <p key={String(p.dataKey)} className="flex items-center gap-2">
@@ -48,9 +48,9 @@ export function PerformanceChart({ series }: { series: Series[] }) {
           <XAxis dataKey="date" tickLine={false} axisLine={false} minTickGap={48} tick={AXIS}
             tickFormatter={(d: string) => new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`))} />
           <YAxis tickFormatter={(v: number) => formatPercent(v, true)} tickLine={false} axisLine={false} width={56} tick={AXIS} />
-          <ReferenceLine y={0} stroke="#767586" />
-          <Tooltip content={PerfTooltip} cursor={{ stroke: "#767586", strokeDasharray: "3 3" }} />
-          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "#464554" }} />
+          <ReferenceLine y={0} stroke="var(--color-outline)" />
+          <Tooltip content={PerfTooltip} cursor={{ stroke: "var(--color-outline)", strokeDasharray: "3 3" }} />
+          <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, color: "var(--color-ink-muted)" }} />
           {series.map((s, i) => (
             <Line key={s.ticker} type="linear" dataKey={s.ticker} name={s.label ?? s.ticker} stroke={s.color ?? SERIES[i]}
               strokeWidth={s.dashed ? 1.5 : 2} strokeDasharray={s.dashed ? DASHES[i % DASHES.length] : undefined} dot={false}
