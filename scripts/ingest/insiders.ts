@@ -60,9 +60,12 @@ try {
       const x = await sec(`https://www.sec.gov/Archives/edgar/data/${cik}/${acc.replace(/-/g, "")}/${doc}`);
       if (!x) { failed++; continue; }
       const parsed = parseForm4(await x.text());
+      // A company's filing list also holds Form 4s it filed as an owner of *other* companies
+      // (Berkshire buying another stock). Keep only filings about this company's own shares.
+      const ownShares = parsed.issuerCik === cik;
       const { error: fe } = await db.from("insider_filings").upsert({ accession: acc, ticker, filed_at: recent.filingDate[i] }, { onConflict: "accession" });
       if (fe) throw fe;
-      const rows = parsed.trades.map((t, k) => ({ id: `${acc}|${k}`, accession: acc, ticker, filed_at: recent.filingDate[i], trade_date: t.date,
+      const rows = (ownShares ? parsed.trades : []).map((t, k) => ({ id: `${acc}|${k}`, accession: acc, ticker, filed_at: recent.filingDate[i], trade_date: t.date,
         owner: t.owner, role: t.role, code: t.code, acquired: t.acquired, shares: t.shares, price: t.price, value: t.value, owned_after: t.owned_after, plan: t.plan }));
       if (rows.length) {
         const { error: te } = await db.from("insider_trades").upsert(rows, { onConflict: "id" });
