@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { InfoTip } from "@/components/info-tip";
-import { FilingDate, isStale } from "@/components/investors/bits";
+import { FilingDate, isStale, quarterLabel } from "@/components/investors/bits";
 import { PageHeader } from "@/components/page-header";
 import { TickerLogo } from "@/components/ticker-logo";
 import { getInvestorPortfolios, type InvestorPortfolio } from "@/lib/data/investors";
@@ -15,22 +15,26 @@ export const metadata: Metadata = { title: "Ünlü yatırımcılar" };
 function crowd(ports: InvestorPortfolio[], now: number) {
   const by = new Map<string, { ticker: string; issuer: string; holders: string[]; buyers: string[]; sellers: string[] }>();
   const get = (ticker: string, issuer: string) => by.get(ticker) ?? by.set(ticker, { ticker, issuer, holders: [], buyers: [], sellers: [] }).get(ticker)!;
+  // Buys and sells only from investors who have filed the latest quarter, so the lists compare the same period.
+  const latest = ports.reduce((m, p) => (p.filing && p.filing.period > m ? p.filing.period : m), "");
   for (const p of ports) {
     if (!p.filing || isStale(p.filing.filed_at, now)) continue;
     const name = p.investor.person;
+    const current = p.filing.period === latest;
     const seen = new Set<string>();
     for (const h of p.holdings) {
       if (!h.ticker || h.putCall || seen.has(h.ticker)) continue;
       seen.add(h.ticker);
       const e = get(h.ticker, h.issuer);
       e.holders.push(name);
-      if (h.change === "yeni" || h.change === "artirdi") e.buyers.push(name);
-      if (h.change === "azaltti") e.sellers.push(name);
+      if (current && (h.change === "yeni" || h.change === "artirdi")) e.buyers.push(name);
+      if (current && h.change === "azaltti") e.sellers.push(name);
     }
-    for (const s of p.sold) if (s.ticker) get(s.ticker, s.issuer).sellers.push(name);
+    if (current) for (const s of p.sold) if (s.ticker) get(s.ticker, s.issuer).sellers.push(name);
   }
   const all = [...by.values()];
   return {
+    latest,
     popular: all.filter((e) => e.holders.length >= 2).sort((a, b) => b.holders.length - a.holders.length).slice(0, 10),
     bought: all.filter((e) => e.buyers.length >= 2).sort((a, b) => b.buyers.length - a.buyers.length || a.sellers.length - b.sellers.length).slice(0, 10),
     sold: all.filter((e) => e.sellers.length >= 2).sort((a, b) => b.sellers.length - a.sellers.length).slice(0, 10),
@@ -82,9 +86,9 @@ async function Investors() {
         <CrowdList title="En çok tutulan hisseler" field="holders" items={c.popular} empty="Ortak hisse yok."
           tip="Güncel bildirimi olan yatırımcıların kaçının portföyünde bu hisse var. Sağdaki sayı yatırımcı sayısıdır." />
         <CrowdList title="Son çeyrekte en çok alınanlar" field="buyers" items={c.bought} empty="En az iki yatırımcının birlikte aldığı hisse yok."
-          tip="Bir önceki çeyreğe göre yeni pozisyon açan ya da hisse sayısını artıran yatırımcılar." />
+          tip={`${c.latest ? quarterLabel(c.latest) : "Son çeyrek"} bildirimini yapmış yatırımcılardan, bir önceki çeyreğe göre yeni pozisyon açan ya da hisse sayısını artıranlar.`} />
         <CrowdList title="Son çeyrekte en çok satılanlar" field="sellers" items={c.sold} empty="En az iki yatırımcının birlikte sattığı hisse yok."
-          tip="Pozisyonu azaltan ya da tamamen satan yatırımcılar." />
+          tip={`${c.latest ? quarterLabel(c.latest) : "Son çeyrek"} bildirimini yapmış yatırımcılardan pozisyonunu azaltan ya da tamamen satanlar.`} />
       </div>
 
       <section aria-labelledby="inv-title">

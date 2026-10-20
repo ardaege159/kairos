@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareQuarters, parseInfoTable } from "./thirteenf.ts";
+import { cleanIssuer, cleanListingName, compareQuarters, normalizeUnits, parseInfoTable } from "./thirteenf.ts";
 import { INVESTORS } from "./list.ts";
 
 const XML = `<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
@@ -20,6 +20,26 @@ describe("parseInfoTable", () => {
     expect(p[0]).toEqual({ cusip: "037833100", issuer: "APPLE INC", title: "COM", putCall: "", value: 1500, shares: 15 });
     expect(p[1]).toMatchObject({ cusip: "00206R102", issuer: "AT&T INC" });
     expect(p[2]).toMatchObject({ putCall: "PUT", value: 300 });
+  });
+});
+
+describe("units and names", () => {
+  it("scales filings reported in thousands and leaves dollar filings alone", () => {
+    const thousands = [{ cusip: "A", issuer: "A", title: "COM", putCall: "", value: 2500, shares: 10_000 }, { cusip: "B", issuer: "B", title: "COM", putCall: "", value: 800, shares: 2000 }];
+    const r = normalizeUnits(thousands);
+    expect(r.scaled).toBe(true);
+    expect(r.rows[0].value).toBe(2_500_000);
+    expect(normalizeUnits([{ cusip: "A", issuer: "A", title: "COM", putCall: "", value: 2_500_000, shares: 10_000 }]).scaled).toBe(false);
+  });
+
+  it("brings 13F issuer names and listing names to the same form", () => {
+    expect(cleanIssuer("ASML HLDG NV")).toBe(cleanListingName("ASML Holding N.V. New York Registry Shares"));
+    expect(cleanIssuer("BRUKER CORP")).toBe("BRUKER CORP");
+    expect(cleanListingName("Bruker Corporation Common Stock")).toBe("BRUKER CORPORATION");
+    expect(cleanIssuer("NEBIUS GROUP N.V.")).toBe(cleanListingName("Nebius Group N.V. Class A Ordinary Shares"));
+    expect(cleanIssuer("ALLY FINL INC")).toBe("ALLY FINANCIAL INC");
+    expect(cleanIssuer("CHUBB LTD SWITZ")).toBe("CHUBB");
+    expect(cleanIssuer("ACCENTURE PLC IRELAND")).toBe("ACCENTURE");
   });
 });
 

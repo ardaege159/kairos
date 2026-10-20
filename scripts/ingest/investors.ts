@@ -5,7 +5,7 @@
 // matching against our company list is the fallback. Filings already stored are skipped.
 import { createClient } from "@supabase/supabase-js";
 import { INVESTORS } from "../../lib/investors/list.ts";
-import { parseInfoTable } from "../../lib/investors/thirteenf.ts";
+import { cleanIssuer, cleanListingName, normalizeUnits, parseInfoTable } from "../../lib/investors/thirteenf.ts";
 import { buildMatcher } from "../../lib/spending/match.ts";
 
 const QUARTERS = Number(process.argv.find((a) => a.startsWith("--quarters="))?.split("=")[1] ?? 3);
@@ -32,7 +32,7 @@ async function sec(u: string): Promise<Response | null> {
   return null;
 }
 
-/** OpenFIGI: CUSIP -> US-listed equity ticker ("BRK/B" -> "BRK.B"). Missing ones map to null. */
+/** OpenFIGI: CUSIP -> US-listed equity ticker ("BRK/B" -> "BRK.B"). Unknown CUSIPs map to null; CUSIPs whose request failed are absent. */
 async function figi(cusips: string[]): Promise<Map<string, { ticker: string | null; name: string | null }>> {
   const out = new Map<string, { ticker: string | null; name: string | null }>();
   for (let i = 0; i < cusips.length; i += 10) {
@@ -67,7 +67,8 @@ try {
   }
   companies.sort((a, b) => Number(b.in_sp500) - Number(a.in_sp500));
   const known = new Set(companies.map((c) => c.ticker));
-  const match = buildMatcher(companies);
+  // Listing names carry the security type ("… Common Stock"); 13F names are abbreviated ("… HLDG NV").
+  const match = buildMatcher(companies.map((c) => ({ ticker: c.ticker, name: cleanListingName(c.name) })));
 
   const { data: stored } = await db.from("investor_filings").select("accession");
   const have = new Set((stored ?? []).map((s) => s.accession));
@@ -95,7 +96,8 @@ try {
       if (!table) continue;
       const x = await sec(`${dir}/${table.name}`);
       if (!x) continue;
-      const rows = parseInfoTable(await x.text());
+      const { rows, scaled } = normalizeUnits(parseInfoTable(await x.text()));
+      if (scaled) console.log(`${inv.fund} ${period}: değerler bin $ cinsindendi, 1.000 ile çarpıldı`);
       pending.push({ cik: inv.cik, period, rows });
       const { error } = await db.from("investor_filings").upsert({
         accession: f.acc, cik: inv.cik, period, filed_at: f.filed, total_value: rows.reduce((s, p) => s + p.value, 0), positions: rows.length,
@@ -105,29 +107,52 @@ try {
     }
   }
 
-  // Map every new CUSIP once: cache first, then OpenFIGI, then the issuer name.
-  const cusips = [...new Set(pending.flatMap((p) => p.rows.map((r) => r.cusip)))];
+  // Map CUSIPs: those in new filings plus stored positions still without a ticker. Cache first, then
+  // OpenFIGI, then every issuer spelling seen for the CUSIP ("CHUBB LIMITED", "CHUBB LTD SWITZ").
+  const names = new Map<string, Set<string>>();
+  const addName = (c: string, n: string) => (names.get(c) ?? names.set(c, new Set()).get(c)!).add(n);
+  for (const p of pending) for (const r of p.rows) addName(r.cusip, r.issuer);
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await db.from("investor_holdings").select("cusip,issuer").is("ticker", null).range(from, from + 999);
+    if (error) throw error;
+    for (const r of data ?? []) addName(r.cusip, r.issuer);
+    if (!data || data.length < 1000) break;
+  }
+  const cusips = [...names.keys()];
   const cache = new Map<string, string | null>();
+  const figiUnknown = new Set<string>();   // OpenFIGI already answered "not found": only retry the name match
   for (let i = 0; i < cusips.length; i += 500) {
-    const { data } = await db.from("cusip_map").select("cusip,ticker").in("cusip", cusips.slice(i, i + 500));
-    for (const c of data ?? []) cache.set(c.cusip, c.ticker);
+    const { data } = await db.from("cusip_map").select("cusip,ticker,source").in("cusip", cusips.slice(i, i + 500));
+    for (const c of data ?? []) {
+      if (c.ticker) cache.set(c.cusip, c.ticker);
+      else if (c.source === "none") figiUnknown.add(c.cusip);
+    }
   }
   const missing = cusips.filter((c) => !cache.has(c));
-  const mapped = await figi(missing);
-  const issuerOf = new Map(pending.flatMap((p) => p.rows.map((r) => [r.cusip, r.issuer] as const)));
-  const cacheRows = missing.map((c) => {
+  const mapped = await figi(missing.filter((c) => !figiUnknown.has(c)));
+  const byName = (c: string) => { for (const n of names.get(c) ?? []) { const m = match(cleanIssuer(n)); if (m) return m; } return null; };
+  const issuerOf = (c: string) => [...(names.get(c) ?? [])][0] ?? null;
+  const cacheRows = missing.flatMap((c) => {
     const m = mapped.get(c);
     let ticker = m?.ticker && known.has(m.ticker) ? m.ticker : null;
     let source = ticker ? "openfigi" : null;
     if (!ticker) {
-      const byName = match(issuerOf.get(c) ?? "");
-      if (byName) { ticker = byName.ticker; source = "name"; }
+      const hit = byName(c);
+      if (hit) { ticker = hit.ticker; source = "name"; }
     }
     cache.set(c, ticker);
-    return { cusip: c, ticker, name: m?.name ?? issuerOf.get(c) ?? null, source, updated_at: new Date().toISOString() };
+    // A failed OpenFIGI request leaves no record, so the CUSIP is tried again next run.
+    if (!ticker && !m && !figiUnknown.has(c)) return [];
+    return [{ cusip: c, ticker, name: m?.name ?? issuerOf(c), source: source ?? "none", updated_at: new Date().toISOString() }];
   });
   for (let i = 0; i < cacheRows.length; i += 500) {
     const { error } = await db.from("cusip_map").upsert(cacheRows.slice(i, i + 500), { onConflict: "cusip" });
+    if (error) throw error;
+  }
+
+  // Stored positions whose CUSIP has now been mapped.
+  for (const r of cacheRows.filter((x) => x.ticker)) {
+    const { error } = await db.from("investor_holdings").update({ ticker: r.ticker }).eq("cusip", r.cusip).is("ticker", null);
     if (error) throw error;
   }
 
