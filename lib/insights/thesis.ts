@@ -4,7 +4,7 @@
 import type { MacroEffect } from "./macro-impact.ts";
 import type { Point } from "./stock.ts";
 
-export type Category = "Şirket" | "Değerleme" | "Sektör" | "Makro" | "Federal harcama";
+export type Category = "Şirket" | "Değerleme" | "Sektör" | "Makro" | "Federal harcama" | "Ünlü yatırımcılar";
 export type Reason = { category: Category; title: string; text: string; tone: "positive" | "negative" | "neutral"; weight: number; source?: string | null };
 export type Stance = "olumlu" | "karisik" | "olumsuz";
 export const STANCE_LABEL: Record<Stance, string> = { olumlu: "Olumlu ağırlıklı", karisik: "Karışık", olumsuz: "Olumsuz ağırlıklı" };
@@ -17,6 +17,7 @@ export type ThesisInput = {
   sector: { rank: number; of: number; return3m: number | null } | null;          // rank 1 = strongest 3-month sector
   valuation: { metric: string; now: number; median: number } | null;            // own-history multiple
   federal: { amount12m: number; revenue: number | null; growth: number | null; themes: { name: string; growth: number }[] } | null;
+  investors?: { holders: string[]; buyers: string[]; sellers: string[]; quarter: string } | null;   // 13F, latest quarter
 };
 
 const p = (v: number) => `%${Math.round(Math.abs(v) * 100)}`;
@@ -61,6 +62,18 @@ export function buildThesis(t: ThesisInput) {
       else if (th.growth <= -0.15) reasons.push({ category: "Federal harcama", tone: "negative", weight: 0.3, title: `${th.name} harcaması azalıyor`,
         text: `Şirketin büyük pay aldığı "${th.name}" temasında federal harcama bir yılda ${p(th.growth)} azaldı.` });
     }
+  }
+
+  // Famous investors (13F): crowding is weak evidence on its own, so these carry small weights.
+  const inv = t.investors;
+  if (inv) {
+    const names = (xs: string[]) => xs.slice(0, 4).join(", ") + (xs.length > 4 ? ` ve ${xs.length - 4} kişi daha` : "");
+    if (inv.buyers.length >= 2) reasons.push({ category: "Ünlü yatırımcılar", tone: "positive", weight: 0.4, title: "Ünlü yatırımcılar alıyor",
+      text: `${inv.quarter} döneminde ${names(inv.buyers)} pozisyon açtı ya da artırdı.` });
+    else if (inv.holders.length >= 3) reasons.push({ category: "Ünlü yatırımcılar", tone: "positive", weight: 0.3, title: "Ünlü yatırımcıların portföyünde",
+      text: `${names(inv.holders)} bu hisseyi tutuyor (${inv.quarter}).` });
+    if (inv.sellers.length >= 2 && inv.buyers.length === 0) reasons.push({ category: "Ünlü yatırımcılar", tone: "negative", weight: 0.3, title: "Ünlü yatırımcılar azaltıyor",
+      text: `${inv.quarter} döneminde ${names(inv.sellers)} pozisyonunu azalttı ya da sattı.` });
   }
 
   const plus = reasons.filter((r) => r.tone === "positive").reduce((s, r) => s + r.weight, 0);

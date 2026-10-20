@@ -10,6 +10,7 @@ import {
   Newspaper,
   Settings,
   Shapes,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/hisseler", label: "Hisseler", icon: ChartColumnBig },
   { href: "/tarayici", label: "Tarayıcı", icon: ListFilter },
   { href: "/portfoy", label: "Portföy", icon: Briefcase },
+  { href: "/yatirimcilar", label: "Ünlü yatırımcılar", icon: Users },
   { href: "/karsilastir", label: "Karşılaştır", icon: GitCompareArrows },
   { href: "/sektorler", label: "Sektörler", icon: Shapes },
   { href: "/makro", label: "Makro", icon: Gauge },

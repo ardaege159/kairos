@@ -54,6 +54,18 @@ export async function getNews(opts: { kind?: "company" | "global"; topic?: strin
   return (data as unknown as RawNews[]).map(toItem);
 }
 
+/** Headlines or summaries mentioning any of the terms (e.g. an investor's name), newest first. */
+export async function getNewsMentioning(terms: string[], limit = 8): Promise<NewsItem[]> {
+  const safe = terms.map((t) => t.replace(/[%_,()*\\"]/g, " ").trim()).filter(Boolean);
+  if (!safe.length) return [];
+  const supabase = await db();
+  const { data, error } = await supabase.from("news_items").select(NEWS_SELECT)
+    .or(safe.flatMap((t) => [`title.ilike.%${t}%`, `description.ilike.%${t}%`]).join(","))
+    .order("published_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  return (data as unknown as RawNews[]).map(toItem);
+}
+
 /** News linked to one ticker, newest first. */
 export async function getTickerNews(ticker: string, limit = 12): Promise<NewsItem[]> {
   const supabase = await db();

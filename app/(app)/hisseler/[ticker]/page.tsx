@@ -13,6 +13,8 @@ import { growth } from "@/lib/spending/trends";
 import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
 import { ThesisSection } from "@/components/stocks/thesis-section";
+import { FamousHolders } from "@/components/stocks/famous-holders";
+import { getHoldersOf } from "@/lib/data/investors";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
 import { ValuationSection } from "@/components/stocks/valuation-section";
@@ -72,7 +74,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory, scoreHistory] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory, scoreHistory, holders] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -86,6 +88,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     getAlerts(stock.ticker),
     isEtf ? Promise.resolve([]) : getEarningsHistory(stock.ticker),
     isEtf ? Promise.resolve([]) : getScoreHistory(stock.ticker),
+    getHoldersOf(stock.ticker),
   ]);
   const federal = spending[0];
   const points = isEtf ? null : stockPoints({
@@ -205,7 +208,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
 
       {points ? (
         <Suspense fallback={<ProsCons {...points} />}>
-          <ThesisSection stock={stock} points={points} quarters={quarters} federal={federal} />
+          <ThesisSection stock={stock} points={points} quarters={quarters} federal={federal} holders={holders} />
         </Suspense>
       ) : null}
 
@@ -306,6 +309,8 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           </div>
         </div>
       </section>
+
+      {!isEtf ? <FamousHolders holders={holders} /> : null}
 
       {insiders ? <InsiderTrades trades={insiders} /> : null}
 

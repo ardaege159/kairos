@@ -6,6 +6,8 @@ import { CircleCheck, CircleMinus, Eye } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { alpacaCloses } from "@/lib/data/alpaca";
 import { getMacro } from "@/lib/data/macro";
+import type { HolderOf } from "@/lib/data/investors";
+import { quarterLabel } from "@/components/investors/bits";
 import { getSpendingThemes, type CompanySpending } from "@/lib/data/spending";
 import { getAllSectorStats, type QuarterRow, type StockRow } from "@/lib/data/stocks";
 import { macroEffects } from "@/lib/insights/macro-impact";
@@ -17,7 +19,7 @@ import { sectorName } from "@/lib/sectors";
 import { THEME_BY_KEY } from "@/lib/spending/themes";
 import { growth } from "@/lib/spending/trends";
 
-const ORDER: Category[] = ["Şirket", "Değerleme", "Sektör", "Makro", "Federal harcama"];
+const ORDER: Category[] = ["Şirket", "Değerleme", "Sektör", "Makro", "Federal harcama", "Ünlü yatırımcılar"];
 const STANCE_STYLE = {
   olumlu: "bg-gain-soft/50 text-gain",
   karisik: "bg-surface-container text-ink",
@@ -50,8 +52,8 @@ function Side({ title, icon, reasons, empty }: { title: string; icon: React.Reac
  * Kairos görünümü: bull and bear case from company data, own-history valuation, sector momentum,
  * macro conditions and federal spending themes. Recomputed on every visit from the latest data.
  */
-export async function ThesisSection({ stock, points, quarters, federal }: {
-  stock: StockRow; points: { pros: Point[]; cons: Point[]; watch: Point[] }; quarters: QuarterRow[]; federal: CompanySpending | undefined;
+export async function ThesisSection({ stock, points, quarters, federal, holders }: {
+  stock: StockRow; points: { pros: Point[]; cons: Point[]; watch: Point[] }; quarters: QuarterRow[]; federal: CompanySpending | undefined; holders: HolderOf[];
 }) {
   const [macro, stats, themes, prices] = await Promise.all([getMacro(), getAllSectorStats(), getSpendingThemes(), alpacaCloses(stock.ticker, 1100)]);
   const m = stock.metrics;
@@ -81,6 +83,12 @@ export async function ThesisSection({ stock, points, quarters, federal }: {
     macro: macroEffects(macroSnapshot(macro), { sector: stock.sector, pe: m.pe ?? null, debtToEquity: m.debt_to_equity ?? null, marketCap: m.market_cap ?? null }),
     sector: rank ? { rank, of: ranked.length, return3m: ranked[rank - 1][1] } : null,
     valuation: med != null && now != null ? { metric: metric.label, now, median: med } : null,
+    investors: holders.length ? {
+      holders: holders.map((h) => h.investor.person),
+      buyers: holders.filter((h) => h.change === "yeni" || h.change === "artirdi").map((h) => h.investor.person),
+      sellers: holders.filter((h) => h.change === "azaltti").map((h) => h.investor.person),
+      quarter: quarterLabel(holders[0].period),
+    } : null,
     federal: federal || myThemes.length ? { amount12m: federal?.amount ?? 0, revenue, growth: federal ? growth(federal.amount_lagged, federal.amount_prev) : null, themes: myThemes } : null,
   });
   const bull = thesis.reasons.filter((r) => r.tone === "positive");

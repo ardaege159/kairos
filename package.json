@@ -14,7 +14,8 @@
     "veri:haber": "node --env-file=.env.local scripts/ingest/news.ts && node --env-file=.env.local scripts/ingest/calendars.ts && node --env-file=.env.local scripts/ingest/earnings-history.ts && node --env-file=.env.local scripts/ingest/alerts.ts",
     "veri:harcama": "node --env-file=.env.local scripts/ingest/spending.ts",
     "veri:makro": "node --env-file=.env.local scripts/ingest/macro.ts",
-    "veri:iceriden": "node --env-file=.env.local scripts/ingest/insiders.ts"
+    "veri:iceriden": "node --env-file=.env.local scripts/ingest/insiders.ts",
+    "veri:yatirimci": "node --env-file=.env.local scripts/ingest/investors.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
