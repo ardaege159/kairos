@@ -25,6 +25,14 @@ describe("macro impact", () => {
     const reit = macroEffects(macro, { sector: "Real Estate", pe: 20, debtToEquity: 2, marketCap: 8e9 });
     expect(reit.map((e) => e.key)).toEqual(["inflation_down", "yields_up", "fed_cutting"]);
   });
+
+  it("names the oil benchmark and cites the series and its date", () => {
+    const dated: MacroSnapshot = { ...macro, DCOILWTICO: { ...macro.DCOILWTICO, date: "2026-10-14", name: "WTI ham petrol (spot)" } };
+    const [oil] = macroEffects(dated, { sector: "Energy", pe: 12, debtToEquity: 0.4, marketCap: 300e9 });
+    expect(oil.title).toContain("WTI ham petrol");
+    expect(oil.source).toBe("WTI ham petrol (spot) · FRED · 14 Eki 2026 verisi");
+    expect(macroEffects(macro, { sector: "Energy", pe: 12, debtToEquity: 0.4, marketCap: 300e9 })[0].source).toBeNull();
+  });
 });
 
 describe("buildThesis", () => {
@@ -32,7 +40,7 @@ describe("buildThesis", () => {
     const t = buildThesis({
       name: "Acme", sectorName: "Sanayi",
       points: { pros: [{ key: "growth", title: "Gelirleri hızlı büyüyor", detail: "…", strength: 0.8 }], cons: [], watch: [] },
-      macro: [{ key: "oil_up", title: "Petrol yükseldi", text: "…", tone: "negative", weight: 0.5 }],
+      macro: [{ key: "oil_up", title: "Petrol yükseldi", text: "…", tone: "negative", weight: 0.5, source: null }],
       sector: { rank: 2, of: 11, return3m: 0.08 },
       valuation: { metric: "F/K", now: 15, median: 20 },
       federal: { amount12m: 2e9, revenue: 10e9, growth: 0.3, themes: [{ name: "Hipersonik ve füze", growth: 0.65 }] },

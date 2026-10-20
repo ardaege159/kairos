@@ -37,6 +37,7 @@ function Side({ title, icon, reasons, empty }: { title: string; icon: React.Reac
                 {r.title}
               </p>
               <p className="mt-0.5 text-sm leading-relaxed text-ink-muted">{r.text}</p>
+              {r.source ? <p className="mt-0.5 text-[11px] text-outline">Kaynak: {r.source}</p> : null}
             </li>
           ))}
         </ul>

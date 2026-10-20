@@ -5,7 +5,7 @@ import type { MacroEffect } from "./macro-impact.ts";
 import type { Point } from "./stock.ts";
 
 export type Category = "Şirket" | "Değerleme" | "Sektör" | "Makro" | "Federal harcama";
-export type Reason = { category: Category; title: string; text: string; tone: "positive" | "negative" | "neutral"; weight: number };
+export type Reason = { category: Category; title: string; text: string; tone: "positive" | "negative" | "neutral"; weight: number; source?: string | null };
 export type Stance = "olumlu" | "karisik" | "olumsuz";
 export const STANCE_LABEL: Record<Stance, string> = { olumlu: "Olumlu ağırlıklı", karisik: "Karışık", olumsuz: "Olumsuz ağırlıklı" };
 
@@ -46,7 +46,7 @@ export function buildThesis(t: ThesisInput) {
       text: `${t.sectorName}, son 3 ayda ${t.sector.of} sektör arasında ${t.sector.rank}. sırada (medyan hisse ${t.sector.return3m >= 0 ? "+" : "−"}${p(t.sector.return3m)}). Sektör genelinde satış baskısı var.` });
   }
 
-  for (const m of t.macro) reasons.push({ category: "Makro", title: m.title, text: m.text, tone: m.tone, weight: m.weight });
+  for (const m of t.macro) reasons.push({ category: "Makro", title: m.title, text: m.text, tone: m.tone, weight: m.weight, source: m.source });
 
   if (t.federal) {
     const f = t.federal;

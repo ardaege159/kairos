@@ -2,9 +2,9 @@
 // These are textbook sensitivities (rates vs long-duration equities, oil vs energy, etc.), stated as
 // tendencies with the numbers behind them, not forecasts. Pure (tested).
 
-export type MacroSnapshot = Record<string, { now: number | null; m3: number | null; m6: number | null; y1: number | null }>;
+export type MacroSnapshot = Record<string, { now: number | null; m3: number | null; m6: number | null; y1: number | null; date?: string | null; name?: string }>;
 export type StockTraits = { sector: string | null; pe: number | null; debtToEquity: number | null; marketCap: number | null };
-export type MacroEffect = { key: string; title: string; text: string; tone: "positive" | "negative"; weight: number };
+export type MacroEffect = { key: string; title: string; text: string; tone: "positive" | "negative"; weight: number; source: string | null };
 
 type Condition = {
   key: string;
@@ -76,7 +76,7 @@ const CONDITIONS: Condition[] = [
   {
     key: "oil_up",
     active: (m) => has(m, "DCOILWTICO", "m3") && pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!) >= 15,
-    title: (m) => `Petrol 3 ayda %${pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!)} yükseldi (${n(m.DCOILWTICO.now!, 0)} $)`,
+    title: (m) => `WTI ham petrol 3 ayda %${pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!)} yükseldi (${n(m.DCOILWTICO.now!, 2)} $)`,
     effect: (s) => s.sector === "Energy" ? { sign: 1, why: "Petrol fiyatı enerji şirketlerinin gelir ve kârını doğrudan artırır." }
       : s.sector === "Consumer Discretionary" ? { sign: -1, why: "Benzin pahalandıkça tüketicinin diğer harcamalara ayırdığı para azalır." }
       : s.sector === "Industrials" ? { sign: -1, why: "Yakıt, taşıma ve hammadde maliyetleri artar; havayolu ve lojistik şirketleri en çok etkilenenlerdir." } : null,
@@ -84,7 +84,7 @@ const CONDITIONS: Condition[] = [
   {
     key: "oil_down",
     active: (m) => has(m, "DCOILWTICO", "m3") && pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!) <= -15,
-    title: (m) => `Petrol 3 ayda %${-pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!)} düştü (${n(m.DCOILWTICO.now!, 0)} $)`,
+    title: (m) => `WTI ham petrol 3 ayda %${-pct(m.DCOILWTICO.now!, m.DCOILWTICO.m3!)} düştü (${n(m.DCOILWTICO.now!, 2)} $)`,
     effect: (s) => s.sector === "Energy" ? { sign: -1, why: "Düşen petrol fiyatı enerji şirketlerinin gelirini azaltır." }
       : ["Consumer Discretionary", "Industrials"].includes(s.sector ?? "") ? { sign: 1, why: "Yakıt maliyeti düşer, tüketicinin cebinde daha çok para kalır." } : null,
   },
@@ -147,6 +147,20 @@ const CONDITIONS: Condition[] = [
   },
 ];
 
+// The series each condition reads, for the "source and date" line under every macro reason.
+const SOURCE: Record<string, string> = {
+  inflation_down: "CPIAUCSL", inflation_up: "CPIAUCSL", yields_up: "DGS10", yields_down: "DGS10", fed_cutting: "DFF", fed_hiking: "DFF",
+  oil_up: "DCOILWTICO", oil_down: "DCOILWTICO", dollar_up: "DTWEXBGS", dollar_down: "DTWEXBGS", jobs_weak: "UNRATE",
+  growth_strong: "A191RL1Q225SBEA", contraction: "A191RL1Q225SBEA", curve_inverted: "T10Y2Y", fear_high: "VIXCLS",
+  mortgage_high: "MORTGAGE30US", credit_stress: "BAMLH0A0HYM2",
+};
+function sourceOf(m: MacroSnapshot, key: string): string | null {
+  const s = m[SOURCE[key]];
+  if (!s?.date) return null;
+  const date = new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${s.date}T00:00:00Z`));
+  return `${s.name ?? SOURCE[key]} · FRED · ${date} verisi`;
+}
+
 export function activeConditions(m: MacroSnapshot): { key: string; title: string }[] {
   return CONDITIONS.filter((c) => c.active(m)).map((c) => ({ key: c.key, title: c.title(m) }));
 }
@@ -157,7 +171,7 @@ export function macroEffects(m: MacroSnapshot, s: StockTraits): MacroEffect[] {
   for (const c of CONDITIONS) {
     if (!c.active(m)) continue;
     const e = c.effect(s);
-    if (e) out.push({ key: c.key, title: c.title(m), text: e.why, tone: e.sign > 0 ? "positive" : "negative", weight: 0.5 });
+    if (e) out.push({ key: c.key, title: c.title(m), text: e.why, tone: e.sign > 0 ? "positive" : "negative", weight: 0.5, source: sourceOf(m, c.key) });
   }
   return out;
 }

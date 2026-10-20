@@ -75,8 +75,8 @@ export const MACRO: MacroDef[] = [
     read: (v, { yearAgo }) => yearAgo == null ? null : v / yearAgo - 1 >= 0.05
       ? { tone: "negative", text: "Dolar bir yılda %5'ten fazla değer kazandı: çok uluslu şirketlerin yurt dışı kârları için olumsuz." }
       : v / yearAgo - 1 <= -0.05 ? { tone: "positive", text: "Dolar bir yılda %5'ten fazla değer kaybetti: ihracatçı ve çok uluslu şirketler için olumlu." } : null },
-  { id: "DCOILWTICO", name: "Petrol (WTI)", group: "piyasa", transform: "level", unit: "$",
-    meaning: "ABD ham petrol fiyatı (varil). Yükselişi enerji şirketlerine yarar; havayolları, kimya ve tüketici harcamaları için maliyettir ve enflasyonu besler.",
+  { id: "DCOILWTICO", name: "WTI ham petrol (spot)", group: "piyasa", transform: "level", unit: "$",
+    meaning: "ABD ham petrolünün (WTI, Cushing) varil başına spot fiyatı; kaynak ABD Enerji Bilgi İdaresi (EIA), FRED üzerinden birkaç gün gecikmeli gelir. Haberlerde sık geçen Brent uluslararası referanstır ve genelde WTI'dan pahalıdır; uygulamalarda görülen fiyatlar çoğunlukla vadeli işlem fiyatıdır ve spot fiyattan farklı olabilir. Yükselişi enerji şirketlerine yarar; havayolları, kimya ve tüketici harcamaları için maliyettir ve enflasyonu besler.",
     read: (v, { yearAgo }) => yearAgo == null ? null : v / yearAgo - 1 >= 0.2
       ? { tone: "neutral", text: `Bir yılda %${Math.round((v / yearAgo - 1) * 100)} arttı: enerji hisseleri için olumlu, enflasyon için yukarı yönlü risk.` }
       : v / yearAgo - 1 <= -0.2 ? { tone: "neutral", text: `Bir yılda %${Math.round((1 - v / yearAgo) * 100)} düştü: enerji hisseleri için baskı, enflasyon için rahatlatıcı.` } : null },
@@ -126,11 +126,11 @@ export function macroView(def: MacroDef, raw: Obs[]): MacroView {
 }
 
 /** Latest value and the values 3, 6 and 12 months earlier for every series (input to macro-impact rules). */
-export function macroSnapshot(views: MacroView[]): Record<string, { now: number | null; m3: number | null; m6: number | null; y1: number | null }> {
+export function macroSnapshot(views: MacroView[]): Record<string, { now: number | null; m3: number | null; m6: number | null; y1: number | null; date: string | null; name: string }> {
   return Object.fromEntries(views.map((v) => {
     const last = v.last;
     const at = (months: number) => (last ? valueAt(v.series, shiftDate(last.date, -months))?.value ?? null : null);
-    return [v.def.id, { now: last?.value ?? null, m3: at(3), m6: at(6), y1: at(12) }];
+    return [v.def.id, { now: last?.value ?? null, m3: at(3), m6: at(6), y1: at(12), date: last?.date ?? null, name: v.def.name }];
   }));
 }
 
