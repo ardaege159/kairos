@@ -33,7 +33,20 @@ async function sec(u: string): Promise<Response | null> {
   return null;
 }
 
-const since = new Date(Date.now() - DAYS * 864e5).toISOString().slice(0, 10);
+/** Retry a Supabase write on transient network errors (ECONNRESET and friends surface as thrown errors). */
+async function retry<T extends { error: unknown }>(op: () => PromiseLike<T>): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const r = await op();
+      if (!r.error || attempt === 3) return r;
+    } catch (e) {
+      if (attempt === 3) throw e;
+    }
+    await sleep(2000 * attempt);
+  }
+}
+
+const since =new Date(Date.now() - DAYS * 864e5).toISOString().slice(0, 10);
 const { data: run } = await db.from("ingest_runs").insert({ source: "insiders" }).select("id").single();
 try {
   const { data: core, error } = await db.from("companies").select("ticker,cik").eq("core", true).eq("asset_type", "stock").not("cik", "is", null);
@@ -63,12 +76,12 @@ try {
       // A company's filing list also holds Form 4s it filed as an owner of *other* companies
       // (Berkshire buying another stock). Keep only filings about this company's own shares.
       const ownShares = parsed.issuerCik === cik;
-      const { error: fe } = await db.from("insider_filings").upsert({ accession: acc, ticker, filed_at: recent.filingDate[i] }, { onConflict: "accession" });
+      const { error: fe } = await retry(() => db.from("insider_filings").upsert({ accession: acc, ticker, filed_at: recent.filingDate[i] }, { onConflict: "accession" }));
       if (fe) throw fe;
       const rows = (ownShares ? parsed.trades : []).map((t, k) => ({ id: `${acc}|${k}`, accession: acc, ticker, filed_at: recent.filingDate[i], trade_date: t.date,
         owner: t.owner, role: t.role, code: t.code, acquired: t.acquired, shares: t.shares, price: t.price, value: t.value, owned_after: t.owned_after, plan: t.plan }));
       if (rows.length) {
-        const { error: te } = await db.from("insider_trades").upsert(rows, { onConflict: "id" });
+        const { error: te } = await retry(() => db.from("insider_trades").upsert(rows, { onConflict: "id" }));
         if (te) throw te;
       }
       filings++;
