@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { AiSummary } from "@/components/stocks/ai-summary";
+import { aiEnabled } from "@/lib/data/ai";
 import { CircleCheck, CircleMinus, Eye } from "lucide-react";
 import { InfoTip } from "@/components/info-tip";
 import { alpacaCloses } from "@/lib/data/alpaca";
@@ -107,6 +110,11 @@ export async function ThesisSection({ stock, points, quarters, federal }: {
           <p className="mt-1 text-xs text-ink-muted num">{bull.length} olumlu · {bear.length} olumsuz neden</p>
         </div>
       </div>
+      {aiEnabled() ? (
+        <Suspense fallback={<div className="mt-4 h-28 animate-pulse rounded-[var(--radius-control)] bg-primary-soft/30" aria-label="Yapay zekâ özeti yazılıyor" />}>
+          <AiSummary input={{ ticker: stock.ticker, name: stock.name, sector: sectorName(stock.sector), price: stock.price, score: stock.score, stanceLabel: thesis.label, reasons: thesis.reasons }} />
+        </Suspense>
+      ) : null}
       <div className="mt-5 grid gap-6 md:grid-cols-2">
         <Side title="Olumlu senaryo (boğa)" icon={<CircleCheck size={16} className="text-gain" aria-hidden />} reasons={bull} empty="Belirgin bir olumlu etken bulunmadı." />
         <Side title="Olumsuz senaryo (ayı)" icon={<CircleMinus size={16} className="text-loss" aria-hidden />} reasons={bear} empty="Belirgin bir olumsuz etken bulunmadı." />
