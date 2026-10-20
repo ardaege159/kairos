@@ -7,14 +7,25 @@ export async function AiSummary({ input }: { input: SummaryInput }) {
   const s = await getAiSummary(input);
   if (!s) return null;
   return (
-    <div className="mt-4 rounded-[var(--radius-control)] bg-primary-soft/40 p-4">
+    <div className="mt-4 rounded-[var(--radius-control)] border border-primary/15 bg-primary-soft/40 p-4">
       <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-primary-strong">
         <Sparkles size={14} aria-hidden /> Yapay zekâ özeti
+        {s.pending ? <span className="font-normal text-ink-muted">· {s.text ? "güncel veriyle yeniden yazılıyor" : "hazırlanıyor"}</span> : null}
       </p>
-      <p className="text-sm leading-relaxed">{s.text}</p>
-      <p className="mt-2 text-[11px] text-ink-muted">
-        {s.model ?? "Model"} ile, yalnızca yukarıdaki verilerden yazıldı · {new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }).format(new Date(s.at))}. Hata yapabilir; rakamları aşağıdaki bölümlerden doğrula.
-      </p>
+      {s.text ? (
+        <>
+          <p className="text-sm leading-relaxed">{s.text}</p>
+          <p className="mt-2 text-[11px] text-ink-muted">
+            {s.model ?? "Model"} ile, yalnızca bu bölümdeki verilerden yazıldı ·{" "}
+            {new Intl.DateTimeFormat("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" }).format(new Date(s.at!))}.
+            Hata yapabilir; rakamları aşağıdaki bölümlerden doğrula.
+          </p>
+        </>
+      ) : (
+        <p className="text-sm text-ink-muted">
+          Özet arka planda yazılıyor (ücretsiz yapay zekâ servisi 1–2 dakika sürebiliyor). Sayfayı biraz sonra yenilediğinde burada görünecek.
+        </p>
+      )}
     </div>
   );
 }

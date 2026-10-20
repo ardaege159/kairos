@@ -19,7 +19,7 @@ export function summaryMessages(s: SummaryInput) {
     {
       role: "user" as const,
       content:
-        `Hisse: ${s.ticker} (${s.name}), sektör: ${s.sector}. Son fiyat: ${s.price ?? "bilinmiyor"} $. Kairos Skoru: ${s.score ?? "yok"}/100. ` +
+        `Hisse: ${s.ticker} (${s.name}), sektör: ${s.sector}. Son fiyat: ${s.price == null ? "bilinmiyor" : s.price.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} $. Kairos Skoru: ${s.score ?? "yok"}/100. ` +
         `Genel görünüm: ${s.stanceLabel}.\nGerçekler:\n${lines.join("\n")}`,
     },
   ];
