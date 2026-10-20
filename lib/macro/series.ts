@@ -125,6 +125,15 @@ export function macroView(def: MacroDef, raw: Obs[]): MacroView {
   return { def, series, last, monthAgo: monthAgo?.date === last?.date ? null : monthAgo, yearAgo, reading };
 }
 
+/** Latest value and the values 3, 6 and 12 months earlier for every series (input to macro-impact rules). */
+export function macroSnapshot(views: MacroView[]): Record<string, { now: number | null; m3: number | null; m6: number | null; y1: number | null }> {
+  return Object.fromEntries(views.map((v) => {
+    const last = v.last;
+    const at = (months: number) => (last ? valueAt(v.series, shiftDate(last.date, -months))?.value ?? null : null);
+    return [v.def.id, { now: last?.value ?? null, m3: at(3), m6: at(6), y1: at(12) }];
+  }));
+}
+
 /** Real policy rate: Fed funds minus headline inflation. */
 export function realRate(fedFunds: number | null, inflation: number | null): { value: number; text: string; tone: Tone } | null {
   if (fedFunds == null || inflation == null) return null;

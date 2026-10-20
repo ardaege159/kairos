@@ -12,6 +12,7 @@ import { GrowthBadge } from "@/components/spending/quarter-bars";
 import { growth } from "@/lib/spending/trends";
 import { classifyEtf } from "@/lib/etf";
 import { ProsCons } from "@/components/stocks/pros-cons";
+import { ThesisSection } from "@/components/stocks/thesis-section";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
 import { ValuationSection } from "@/components/stocks/valuation-section";
@@ -86,6 +87,17 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve([]) : getEarningsHistory(stock.ticker),
   ]);
   const federal = spending[0];
+  const points = isEtf ? null : stockPoints({
+    metrics: stock.metrics,
+    pct: stock.sector_pct,
+    sectorMedian: Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, v.median])),
+    score: stock.score,
+    price: stock.price,
+    daysToEarnings: nextEarnings ? Math.round((Date.parse(`${nextEarnings.report_date}T00:00:00Z`) - now) / 864e5) : null,
+    federal12m: federal?.amount ?? null,
+    earnings: earningsHistory.length ? surpriseSummary(earningsHistory) : null,
+    insiders: insiders ? summarize(insiders.filter((t) => Date.parse(t.date) >= now - 90 * 864e5)) : null,
+  });
   const etfCategory = isEtf ? classifyEtf(stock.name) : null;
   const similar = isEtf
     ? (await searchStocks({ universe: "etf", etfCategory: etfCategory?.key ?? "diger", sort: "dollar_volume", dir: "desc", page: 1 })).rows
@@ -190,20 +202,10 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
         </div>
       </div>
 
-      {!isEtf ? (
-        <ProsCons
-          {...stockPoints({
-            metrics: stock.metrics,
-            pct: stock.sector_pct,
-            sectorMedian: Object.fromEntries(Object.entries(stats).map(([k, v]) => [k, v.median])),
-            score: stock.score,
-            price: stock.price,
-            daysToEarnings: nextEarnings ? Math.round((Date.parse(`${nextEarnings.report_date}T00:00:00Z`) - now) / 864e5) : null,
-            federal12m: federal?.amount ?? null,
-            earnings: earningsHistory.length ? surpriseSummary(earningsHistory) : null,
-            insiders: insiders ? summarize(insiders.filter((t) => Date.parse(t.date) >= now - 90 * 864e5)) : null,
-          })}
-        />
+      {points ? (
+        <Suspense fallback={<ProsCons {...points} />}>
+          <ThesisSection stock={stock} points={points} quarters={quarters} federal={federal} />
+        </Suspense>
       ) : null}
 
       {isEtf && similar.length ? (
