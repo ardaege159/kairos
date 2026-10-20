@@ -56,7 +56,7 @@ export function AlertForm({ ticker: fixed, price }: { ticker?: string; price?: n
         Not (isteğe bağlı)
         <input value={note} maxLength={140} onChange={(e) => setNote(e.target.value)} placeholder="ör. destek seviyesi, ekleme yap" className={`mt-1 ${input}`} />
       </label>
-      <button type="submit" disabled={pending} className="self-start rounded-[var(--radius-control)] bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+      <button type="submit" disabled={pending} className="self-start rounded-[var(--radius-control)] bg-primary transition-colors hover:bg-primary-strong px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
         {pending ? "Kaydediliyor…" : "Alarm kur"}
       </button>
       {msg ? <p role="status" className={`text-sm ${msg.error ? "text-loss" : "text-gain"}`}>{msg.error ?? msg.ok}</p> : null}

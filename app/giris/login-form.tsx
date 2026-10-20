@@ -37,7 +37,7 @@ export function LoginForm({ linkError }: { linkError?: boolean }) {
         name="intent"
         value="giris"
         disabled={pending}
-        className="mt-1 rounded-[var(--radius-control)] bg-gradient-to-r from-primary to-secondary px-4 py-2.5 font-semibold text-white shadow-[0_10px_30px_rgb(99_102_241/0.25)] disabled:opacity-60"
+        className="mt-1 rounded-[var(--radius-control)] bg-primary transition-colors hover:bg-primary-strong px-4 py-2.5 font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Bekle…" : "Giriş yap"}
       </button>

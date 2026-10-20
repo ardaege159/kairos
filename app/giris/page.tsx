@@ -13,7 +13,7 @@ export default function GirisPage({ searchParams }: PageProps<"/giris">) {
   return (
     <main className="flex min-h-dvh items-center justify-center px-4">
       <section className="glass-card w-full max-w-sm p-8">
-        <p className="bg-gradient-to-r from-primary to-secondary bg-clip-text text-3xl font-bold tracking-tight text-transparent">
+        <p className="text-primary text-3xl font-bold tracking-tight ">
           Kairos
         </p>
         <h1 className="mt-6 text-lg font-semibold">Giriş yap</h1>

@@ -21,26 +21,33 @@
   --color-primary-soft: var(--k-primary-soft);
   --color-secondary: var(--k-secondary);
 
+  --color-nav: var(--k-nav);
+  --color-nav-ink: var(--k-nav-ink);
+  --color-nav-muted: var(--k-nav-muted);
+  --color-nav-hover: var(--k-nav-hover);
+  --color-nav-active: var(--k-nav-active);
+  --color-nav-accent: var(--k-nav-accent);
+
   --color-gain: var(--k-gain);
   --color-gain-soft: var(--k-gain-soft);
   --color-loss: var(--k-loss);
   --color-loss-soft: var(--k-loss-soft);
 
-  --radius-card: 1.5rem;
+  --radius-card: 0.75rem;
   --radius-control: 0.5rem;
 }
 
 :root {
   color-scheme: light;
-  --k-surface: #f7f9fb;
-  --k-surface-low: #f2f4f6;
-  --k-surface-container: #eceef0;
-  --k-surface-high: #e6e8ea;
+  --k-surface: #eef0f4;
+  --k-surface-low: #f5f6f9;
+  --k-surface-container: #e6e9ef;
+  --k-surface-high: #dfe3ea;
   --k-elevated: #ffffff;
   --k-ink: #191c1e;
   --k-ink-muted: #464554;
   --k-outline: #767586;
-  --k-outline-soft: #c7c4d7;
+  --k-outline-soft: #d5d9e2;
   --k-primary: #4648d4;
   --k-primary-strong: #2f2ebe;
   --k-primary-soft: #e1e0ff;
@@ -49,20 +56,22 @@
   --k-gain-soft: #6ffbbe;
   --k-loss: #ba1a1a;
   --k-loss-soft: #ffdad6;
-  --k-glass: rgb(255 255 255 / 0.55);
-  --k-glass-pane: rgb(255 255 255 / 0.45);
-  --k-glass-edge: rgb(255 255 255 / 0.5);
-  --k-glass-light: rgb(255 255 255 / 0.85);
-  --k-shadow: rgb(99 102 241 / 0.08);
-  --k-glow-a: rgb(129 39 207 / 0.10);
-  --k-glow-b: rgb(70 72 212 / 0.10);
+  --k-card: #ffffff;
+  --k-card-border: #dde1e8;
+  --k-card-line: rgb(20 26 51 / 0.04);
+  --k-nav: #151a33;
+  --k-nav-ink: #f2f3fb;
+  --k-nav-muted: #a3a8c6;
+  --k-nav-hover: rgb(124 126 255 / 0.14);
+  --k-nav-active: rgb(124 126 255 / 0.24);
+  --k-nav-accent: #9a9cff;
 }
 
 /* Dark palette: same hues, lifted for contrast on a deep blue-grey base. */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --k-surface: #0e1016;
-  --k-surface-low: #141720;
+  --k-surface: #0d0f14;
+  --k-surface-low: #12151c;
   --k-surface-container: #1b1e29;
   --k-surface-high: #262a37;
   --k-elevated: #1d2030;
@@ -78,19 +87,21 @@
   --k-gain-soft: #0e4a33;
   --k-loss: #ff7a72;
   --k-loss-soft: #4f1d1d;
-  --k-glass: rgb(28 31 44 / 0.62);
-  --k-glass-pane: rgb(22 25 36 / 0.7);
-  --k-glass-edge: rgb(255 255 255 / 0.06);
-  --k-glass-light: rgb(255 255 255 / 0.1);
-  --k-shadow: rgb(0 0 0 / 0.35);
-  --k-glow-a: rgb(129 39 207 / 0.18);
-  --k-glow-b: rgb(70 72 212 / 0.16);
+  --k-card: #151821;
+  --k-card-border: #252a38;
+  --k-card-line: rgb(0 0 0 / 0.25);
+  --k-nav: #121634;
+  --k-nav-ink: #eef0fa;
+  --k-nav-muted: #9196b5;
+  --k-nav-hover: rgb(151 152 255 / 0.12);
+  --k-nav-active: rgb(151 152 255 / 0.2);
+  --k-nav-accent: #9a9cff;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --k-surface: #0e1016;
-    --k-surface-low: #141720;
+    --k-surface: #0d0f14;
+    --k-surface-low: #12151c;
     --k-surface-container: #1b1e29;
     --k-surface-high: #262a37;
     --k-elevated: #1d2030;
@@ -106,46 +117,37 @@
     --k-gain-soft: #0e4a33;
     --k-loss: #ff7a72;
     --k-loss-soft: #4f1d1d;
-    --k-glass: rgb(28 31 44 / 0.62);
-    --k-glass-pane: rgb(22 25 36 / 0.7);
-    --k-glass-edge: rgb(255 255 255 / 0.06);
-    --k-glass-light: rgb(255 255 255 / 0.1);
-    --k-shadow: rgb(0 0 0 / 0.35);
-    --k-glow-a: rgb(129 39 207 / 0.18);
-    --k-glow-b: rgb(70 72 212 / 0.16);
+    --k-card: #151821;
+    --k-card-border: #252a38;
+    --k-card-line: rgb(0 0 0 / 0.25);
+    --k-nav: #121634;
+    --k-nav-ink: #eef0fa;
+    --k-nav-muted: #9196b5;
+    --k-nav-hover: rgb(151 152 255 / 0.12);
+    --k-nav-active: rgb(151 152 255 / 0.2);
+    --k-nav-accent: #9a9cff;
   }
 }
 
 body {
   color: var(--color-ink);
-  /* Soft base gradient behind the glass layers. */
-  background:
-    radial-gradient(60rem 40rem at 85% -10%, var(--k-glow-a), transparent 60%),
-    radial-gradient(50rem 36rem at -10% 110%, var(--k-glow-b), transparent 60%),
-    var(--color-surface);
-  background-attachment: fixed;
+  background: var(--color-surface);
 }
 
 @layer components {
-  /* Layer 2 card: medium blur, 40% fill, light-leak edge on top/left, purple-tinted shadow. */
+  /* Content card: opaque surface a step lighter than the page, hairline border, no blur or glow. */
   .glass-card {
-    background: var(--k-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--k-glass-edge);
-    border-top-color: var(--k-glass-light);
-    border-left-color: var(--k-glass-light);
+    background: var(--k-card);
+    border: 1px solid var(--k-card-border);
     border-radius: var(--radius-card);
-    box-shadow: 0 10px 30px var(--k-shadow);
+    box-shadow: 0 1px 0 var(--k-card-line);
   }
 
-  /* Sidebar pane: strongest blur to separate it from scrolling content. */
+  /* Navigation panel: the one dark, solid anchor of the layout in both themes. */
   .glass-pane {
-    background: var(--k-glass-pane);
-    backdrop-filter: blur(40px);
-    -webkit-backdrop-filter: blur(40px);
-    border: 1px solid var(--k-glass-edge);
-    box-shadow: 0 10px 30px var(--k-shadow);
+    background: var(--k-nav);
+    color: var(--k-nav-ink);
+    border: 1px solid rgb(255 255 255 / 0.06);
   }
 
   /* Financial figures: tabular digits so columns align. */

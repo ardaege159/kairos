@@ -33,7 +33,7 @@ async function Portfolios() {
             const a = analyses[i];
             const up = a.holdings.pnl >= 0;
             return (
-              <Link key={p.id} href={`/portfoy/${p.id}`} className="glass-card flex flex-col gap-3 p-5 hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
+              <Link key={p.id} href={`/portfoy/${p.id}`} className="glass-card flex flex-col gap-3 p-5 transition-colors hover:border-primary/40">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="font-semibold">{p.name}</h2>
                   {a.risk ? <RiskBadge level={a.risk.level} /> : null}

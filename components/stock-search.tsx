@@ -121,7 +121,7 @@ export function StockSearch({
         <ul
           id={listId}
           role="listbox"
-          className="absolute top-full z-30 mt-1 max-h-80 w-full overflow-auto rounded-[var(--radius-control)] border border-outline-soft bg-elevated py-1 shadow-[0_10px_30px_rgb(99_102_241/0.18)]"
+          className="absolute top-full z-30 mt-1 max-h-80 w-full overflow-auto rounded-[var(--radius-control)] border border-outline-soft bg-elevated py-1 shadow-lg"
         >
           {items.length === 0 ? (
             <li className="px-3 py-2 text-sm text-ink-muted">{loading ? "Aranıyor…" : "Eşleşen hisse ya da ETF yok."}</li>

@@ -17,7 +17,7 @@ import { sectorName } from "@/lib/sectors";
 function WatchCard({ s, earnings }: { s: StockRow; earnings?: { report_date: string; time_of_day: string | null } }) {
   const up = (s.change_1d ?? 0) >= 0;
   return (
-    <div className="glass-card relative hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
+    <div className="glass-card relative transition-colors hover:border-primary/40">
     <div className="absolute top-3 right-3 z-10">
       <WatchButton ticker={s.ticker} watched compact />
     </div>

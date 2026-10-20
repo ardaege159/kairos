@@ -113,7 +113,7 @@ async function Spending({ searchParams }: { searchParams: Promise<Record<string,
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {rankedThemes.map((t) => (
-              <Link key={t.key} href={`/harcamalar/tema/${t.key}`} className="glass-card flex flex-col gap-3 p-4 transition-shadow hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
+              <Link key={t.key} href={`/harcamalar/tema/${t.key}`} className="glass-card flex flex-col gap-3 p-4 transition-shadow transition-colors hover:border-primary/40">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="font-semibold">{t.def.name}</p>

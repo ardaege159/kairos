@@ -79,7 +79,7 @@ function FilterForm({ p }: { p: Params }) {
       </details>
       <p className="text-xs text-ink-muted">Yüzdeleri sayı olarak gir (%15 için 15), piyasa değeri ve hacmi milyar dolar olarak. Boş bırakılan alanlar filtrelenmez; verisi olmayan şirketler o ölçüte uymamış sayılır.</p>
       <div className="flex items-center gap-3">
-        <button type="submit" className="rounded-[var(--radius-control)] bg-gradient-to-r from-primary to-secondary px-5 py-2 text-sm font-semibold text-white">Tara</button>
+        <button type="submit" className="rounded-[var(--radius-control)] bg-primary transition-colors hover:bg-primary-strong px-5 py-2 text-sm font-semibold text-white">Tara</button>
         <Link href="/tarayici" className="text-sm text-ink-muted hover:text-primary">Temizle</Link>
       </div>
     </form>

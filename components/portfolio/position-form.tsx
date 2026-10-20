@@ -102,7 +102,7 @@ export function PositionForm({ portfolioId, today }: { portfolioId: string; toda
         </p>
       ) : null}
       <button type="submit" disabled={pending}
-        className="rounded-[var(--radius-control)] bg-gradient-to-r from-primary to-secondary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+        className="rounded-[var(--radius-control)] bg-primary transition-colors hover:bg-primary-strong px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
         {pending ? "Ekleniyor…" : "Portföye ekle"}
       </button>
       {message ? <p role="status" className={`text-sm ${message.error ? "text-loss" : "text-gain"}`}>{message.error ?? message.ok}</p> : null}

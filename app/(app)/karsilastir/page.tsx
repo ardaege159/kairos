@@ -32,7 +32,7 @@ function bestIndex(values: (number | undefined)[], better: "higher" | "lower" | 
 function StockCard({ s, color }: { s: StockRow; color: string }) {
   const up = (s.change_1d ?? 0) >= 0;
   return (
-    <Link href={`/hisseler/${s.ticker}`} className="glass-card block p-5 hover:shadow-[0_10px_30px_rgb(99_102_241/0.16)]">
+    <Link href={`/hisseler/${s.ticker}`} className="glass-card block p-5 transition-colors hover:border-primary/40">
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} aria-hidden />
         <TickerLogo ticker={s.ticker} size={28} etf={s.asset_type === "etf"} />
