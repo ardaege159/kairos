@@ -1,0 +1,96 @@
+# Scheduled data updates for Kairos. Secrets come from the repository settings (never from files).
+# Times are UTC: US markets close at 20:00 UTC (21:00 in winter), Turkey is UTC+3.
+name: Veri güncelleme
+
+on:
+  schedule:
+    - cron: "30 21 * * 1-5"  # piyasa: after the US close, Mon–Fri
+    - cron: "0 5 * * *"      # gunluk: news, calendars, macro, insiders, opinions
+    - cron: "0 6 * * 0"      # haftalik: universe, SEC fundamentals, federal spending, famous 13F
+    - cron: "0 7 15 * *"     # aylik: small-fund ranking (new quarterly 13F data sets appear every 3 months)
+  workflow_dispatch:
+    inputs:
+      job:
+        description: "Hangi güncelleme (piyasa, gunluk, haftalik, aylik)"
+        required: true
+        default: gunluk
+
+concurrency:
+  group: kairos-data
+  cancel-in-progress: false
+
+env:
+  NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+  SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+  ALPACA_API_KEY_ID: ${{ secrets.ALPACA_API_KEY_ID }}
+  ALPACA_API_SECRET_KEY: ${{ secrets.ALPACA_API_SECRET_KEY }}
+  MARKETAUX_API_TOKEN: ${{ secrets.MARKETAUX_API_TOKEN }}
+  FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+  ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+  SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+  AI_API_KEY: ${{ secrets.AI_API_KEY }}
+  OWNER_EMAIL: ${{ secrets.OWNER_EMAIL }}
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - name: Which update
+        id: pick
+        run: |
+          case "${{ github.event.schedule }}" in
+            "30 21 * * 1-5") job=piyasa ;;
+            "0 5 * * *") job=gunluk ;;
+            "0 6 * * 0") job=haftalik ;;
+            "0 7 15 * *") job=aylik ;;
+            *) job="${{ github.event.inputs.job }}" ;;
+          esac
+          echo "job=$job" >> "$GITHUB_OUTPUT"
+          echo "Güncelleme: $job"
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Piyasa (fiyat, metrik, skor, alarm)
+        if: steps.pick.outputs.job == 'piyasa'
+        run: npm run veri:fiyat
+
+      - name: Günlük (haber, takvim, bilanço sürprizi, makro, yönetici işlemleri, görüşler, alarm)
+        if: steps.pick.outputs.job == 'gunluk'
+        run: |
+          set -e
+          npm run veri:haber
+          npm run veri:makro
+          npm run veri:iceriden
+          node scripts/ingest/opinions.ts --max=30
+          node scripts/ingest/alerts.ts
+
+      - name: Haftalık (evren, SEC bilançoları, federal harcama, tanınmış yatırımcılar)
+        if: steps.pick.outputs.job == 'haftalik'
+        run: |
+          set -e
+          node scripts/ingest/universe.ts
+          node scripts/ingest/sec-fundamentals.mjs
+          npm run veri:harcama
+          npm run veri:yatirimci
+          node scripts/ingest/compute-metrics.ts
+
+      - name: Restore 13F data sets
+        if: steps.pick.outputs.job == 'aylik'
+        uses: actions/cache@v4
+        with:
+          path: data/13f
+          key: sec-13f-${{ github.run_id }}
+          restore-keys: sec-13f-
+      - name: Aylık (küçük fon sıralaması)
+        if: steps.pick.outputs.job == 'aylik'
+        run: |
+          set -e
+          node scripts/ingest/download-13f.ts --dir=data/13f
+          node --max-old-space-size=6144 scripts/ingest/small-funds.ts --dir=data/13f
