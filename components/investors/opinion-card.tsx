@@ -32,7 +32,10 @@ export function OpinionCard({ o, showTicker = true }: { o: Opinion; showTicker?:
         </ul>
       ) : null}
       <footer className="mt-1 flex flex-wrap items-center justify-between gap-2 text-xs text-ink-muted">
-        <span><b className="text-ink">{o.post.source?.author ?? "?"}</b> · {o.post.source?.name}</span>
+        <span>
+          <b className="text-ink">{o.post.source?.author ?? "?"}</b>
+          {o.post.source && o.post.source.name !== o.post.source.author ? <> · {o.post.source.name}</> : null}
+        </span>
         <a href={o.post.url} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 text-primary hover:underline">
           <span className="truncate">{o.post.title}</span> <ExternalLink size={12} aria-label="(yeni sekmede açılır)" />
         </a>

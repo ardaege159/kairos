@@ -1,7 +1,10 @@
 import { quarterLabel } from "@/components/investors/bits";
 
 type Point = { period: string; r: number; bench: number };
-const pct = (v: number, signed = false) => `${signed && v > 0 ? "+" : v < 0 ? "−" : ""}%${Math.abs(Math.round(v * 100))}`;
+const pct = (v: number, signed = false) => {
+  const n = Math.round(v * 100);
+  return n === 0 ? "%0" : `${signed && n > 0 ? "+" : n < 0 ? "−" : ""}%${Math.abs(n)}`;
+};
 
 /** Growth of $1: 1, then the running product of (1 + r). */
 function cumulative(rs: number[]): number[] {
@@ -46,7 +49,7 @@ export function QuarterPairs({ series }: { series: Point[] }) {
               {bar(s.r, s.r >= s.bench ? "bg-primary" : "bg-primary/45")}
               {bar(s.bench, "bg-outline/50")}
             </div>
-            <span className={`mt-1 text-[11px] font-semibold num ${s.r >= 0 ? "text-gain" : "text-loss"}`}>{pct(s.r, true)}</span>
+            <span className={`mt-1 text-[11px] font-semibold num ${Math.abs(s.r) < 0.005 ? "text-ink-muted" : s.r > 0 ? "text-gain" : "text-loss"}`}>{pct(s.r, true)}</span>
             <span className="text-[10px] text-ink-muted">{s.period.slice(2, 4)}/{Math.floor((Number(s.period.slice(5, 7)) - 1) / 3) + 1}Ç</span>
           </div>
         ))}

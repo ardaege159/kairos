@@ -39,7 +39,11 @@ async function Opinions({ searchParams }: { searchParams: Promise<Record<string,
                 <TickerLogo ticker={t.ticker} size={22} />
                 <Link href={`/hisseler/${t.ticker}`} className="font-semibold hover:text-primary">{t.ticker}</Link>
                 <span className="min-w-0 flex-1 truncate text-xs text-ink-muted" title={[...t.sources].join(", ")}>{[...t.sources].join(", ")}</span>
-                <span className="text-xs num"><span className="text-gain">{t.olumlu}↑</span> {t.olumsuz ? <span className="text-loss">{t.olumsuz}↓</span> : null}</span>
+                <span className="flex gap-1.5 text-xs num" aria-label={`${t.olumlu} olumlu, ${t.olumsuz} olumsuz, ${t.notr} nötr görüş`}>
+                  {t.olumlu ? <span className="text-gain">{t.olumlu}↑</span> : null}
+                  {t.olumsuz ? <span className="text-loss">{t.olumsuz}↓</span> : null}
+                  {t.notr ? <span className="text-ink-muted">{t.notr}~</span> : null}
+                </span>
               </li>
             ))}
           </ul>

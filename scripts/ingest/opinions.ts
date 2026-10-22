@@ -17,6 +17,8 @@ const secret = process.env.SUPABASE_SECRET_KEY?.trim();
 const aiKey = process.env.AI_API_KEY?.trim();
 const AI_BASE = process.env.AI_BASE_URL?.trim() || "https://generativelanguage.googleapis.com/v1beta/openai";
 const AI_MODEL = process.env.AI_MODEL?.trim() || "gemini-flash-lite-latest";
+// Second reading for posts where the fast model found nothing: slower but more thorough.
+const AI_MODEL_STRONG = process.env.AI_MODEL_STRONG?.trim() || "gemini-flash-latest";
 if (!url || !secret || !aiKey) {
   console.error("Supabase anahtarları ve AI_API_KEY gerekli (.env.local).");
   process.exit(1);
@@ -32,13 +34,13 @@ function parseFeed(xml: string): Item[] {
   }).filter((i) => i.link.startsWith("http") && !Number.isNaN(i.date.getTime()));
 }
 
-async function ask(messages: ReturnType<typeof extractMessages>): Promise<string | null> {
+async function ask(messages: ReturnType<typeof extractMessages>, model = AI_MODEL): Promise<string | null> {
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const r = await fetch(`${AI_BASE}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${aiKey}` },
-        body: JSON.stringify({ model: AI_MODEL, messages, temperature: 0.1, max_tokens: 2500, reasoning_effort: "low", response_format: { type: "json_object" } }),
+        body: JSON.stringify({ model, messages, temperature: 0.1, max_tokens: 2500, reasoning_effort: "low", response_format: { type: "json_object" } }),
         signal: AbortSignal.timeout(170_000),
       });
       if (r.status === 429) { await new Promise((res) => setTimeout(res, 30_000)); continue; }
@@ -82,13 +84,18 @@ try {
   }
   // Newest first, a bounded number per run (the free model can take a minute per post).
   const todo = queue.filter((q) => !seen.has(q.id)).sort((a, b) => b.item.date.getTime() - a.item.date.getTime()).slice(0, MAX);
-  let posts = 0, mentions = 0, failed = 0;
+  let posts = 0, mentions = 0, failed = 0, retried = 0;
   for (const { source, item, id } of todo) {
     const text = htmlToText(item.html);
     if (text.length < 200) continue; // nothing to read (image-only or empty preview)
-    const raw = await ask(extractMessages({ source: source.name, author: source.author, title: item.title, text }));
+    const messages = extractMessages({ source: source.name, author: source.author, title: item.title, text });
+    const raw = await ask(messages);
     if (raw == null) { failed++; continue; } // not recorded: retried next run
-    const found = parseMentions(raw, listing, byName);
+    let found = parseMentions(raw, listing, byName);
+    if (!found.length) {
+      const again = await ask(messages, AI_MODEL_STRONG);
+      if (again != null) { found = parseMentions(again, listing, byName); if (found.length) retried++; }
+    }
     const { error: pe } = await db.from("opinion_posts").upsert({ id, source: source.key, title: item.title, url: item.link, published_at: item.date.toISOString(), mentions: found.length }, { onConflict: "id" });
     if (pe) throw pe;
     if (found.length) {
@@ -98,7 +105,7 @@ try {
     posts++; mentions += found.length;
     console.log(`${source.name}: ${item.title.slice(0, 60)} -> ${found.map((m) => `${m.ticker}(${m.stance})`).join(", ") || "hisse yok"}`);
   }
-  const detail = { feeds: SOURCES.length, recent: queue.length, processed: posts, mentions, failed };
+  const detail = { feeds: SOURCES.length, recent: queue.length, processed: posts, mentions, failed, foundOnSecondReading: retried };
   await db.from("ingest_runs").update({ status: "ok", finished_at: new Date().toISOString(), detail }).eq("id", run!.id);
   console.log(JSON.stringify(detail));
 } catch (err) {
