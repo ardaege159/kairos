@@ -13,7 +13,8 @@ if (!ALPACA_API_KEY_ID || !ALPACA_API_SECRET_KEY || !NEXT_PUBLIC_SUPABASE_URL ||
   process.exit(1);
 }
 const db = createClient(NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY.trim(), { auth: { persistSession: false } });
-const SEC = { headers: { "User-Agent": "Kairos personal research (non-commercial)", "Accept-Encoding": "gzip, deflate" } };
+// SEC wants a name and contact e-mail; requests from cloud IPs without one get an HTML block page.
+const SEC = { headers: { "User-Agent": process.env.SEC_USER_AGENT?.trim() || "Kairos personal research (non-commercial)", "Accept-Encoding": "gzip, deflate" } };
 const EXCHANGES = new Set(["NASDAQ", "NYSE", "ARCA", "BATS", "AMEX"]);
 const EXCLUDE_NAME = /\b(warrants?|rights?|units?|preferred|depositary shares? representing|notes due|debentures|subordinated)\b/i;
 // Strong ETF markers decide on their own; "fund"/"trust" alone only counts when SEC has no CIK for the

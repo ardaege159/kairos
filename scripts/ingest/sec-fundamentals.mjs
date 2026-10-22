@@ -9,7 +9,8 @@ import { createClient } from '@supabase/supabase-js';
 
 const DRY = process.argv.includes('--dry');
 const QUARTERS = Number(process.argv.find(a => a.startsWith('--quarters='))?.split('=')[1] ?? 12);
-const UA = 'Kairos personal research (non-commercial)';
+// SEC wants a name and contact e-mail; requests from cloud IPs without one get an HTML block page.
+const UA = process.env.SEC_USER_AGENT?.trim() || 'Kairos personal research (non-commercial)';
 
 // metric -> ordered tag candidates (first tag that has a value wins)
 const FLOWS = {
