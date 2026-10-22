@@ -18,6 +18,7 @@ export type ThesisInput = {
   valuation: { metric: string; now: number; median: number } | null;            // own-history multiple
   federal: { amount12m: number; revenue: number | null; growth: number | null; themes: { name: string; growth: number }[] } | null;
   investors?: { holders: string[]; buyers: string[]; sellers: string[]; quarter: string } | null;   // 13F, latest quarter
+  opinions?: { positive: string[]; negative: string[] } | null;  // authors of recent write-ups where the stock is the main subject
 };
 
 const p = (v: number) => `%${Math.round(Math.abs(v) * 100)}`;
@@ -75,6 +76,13 @@ export function buildThesis(t: ThesisInput) {
     if (inv.sellers.length >= 2 && inv.buyers.length === 0) reasons.push({ category: "Yatırımcılar", tone: "negative", weight: 0.3, title: "Takip edilen yatırımcılar azaltıyor",
       text: `${inv.quarter} döneminde ${names(inv.sellers)} pozisyonunu azalttı ya da sattı.` });
   }
+
+  // Independent analysts' write-ups (last 90 days, stock as the main subject).
+  const op = t.opinions;
+  if (op && op.positive.length >= 2 && op.negative.length === 0) reasons.push({ category: "Yatırımcılar", tone: "positive", weight: 0.3,
+    title: "Bağımsız analistler olumlu", text: `Son 90 günde ${op.positive.join(", ")} bu hisse hakkında olumlu analiz yayınladı.` });
+  else if (op && op.negative.length >= 2 && op.positive.length === 0) reasons.push({ category: "Yatırımcılar", tone: "negative", weight: 0.3,
+    title: "Bağımsız analistler olumsuz", text: `Son 90 günde ${op.negative.join(", ")} bu hisse hakkında olumsuz analiz yayınladı.` });
 
   const plus = reasons.filter((r) => r.tone === "positive").reduce((s, r) => s + r.weight, 0);
   const minus = reasons.filter((r) => r.tone === "negative").reduce((s, r) => s + r.weight, 0);

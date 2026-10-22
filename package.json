@@ -15,7 +15,8 @@
     "veri:harcama": "node --env-file=.env.local scripts/ingest/spending.ts",
     "veri:makro": "node --env-file=.env.local scripts/ingest/macro.ts",
     "veri:iceriden": "node --env-file=.env.local scripts/ingest/insiders.ts",
-    "veri:yatirimci": "node --env-file=.env.local scripts/ingest/investors.ts"
+    "veri:yatirimci": "node --env-file=.env.local scripts/ingest/investors.ts",
+    "veri:gorus": "node --env-file=.env.local scripts/ingest/opinions.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

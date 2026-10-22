@@ -15,6 +15,8 @@ import { ProsCons } from "@/components/stocks/pros-cons";
 import { ThesisSection } from "@/components/stocks/thesis-section";
 import { FamousHolders } from "@/components/stocks/famous-holders";
 import { getHoldersOf } from "@/lib/data/investors";
+import { getOpinions } from "@/lib/data/opinions";
+import { OpinionCard } from "@/components/investors/opinion-card";
 import { stockPoints } from "@/lib/insights/stock";
 import { InsiderTrades } from "@/components/stocks/insider-trades";
 import { ValuationSection } from "@/components/stocks/valuation-section";
@@ -74,7 +76,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
   if (!stock) notFound();
 
   const isEtf = stock.asset_type === "etf";
-  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory, scoreHistory, holders] = await Promise.all([
+  const [quarters, prices, stats, news, nextEarnings, now, watchlist, spending, spendingActions, insiders, alerts, earningsHistory, scoreHistory, holders, opinions] = await Promise.all([
     isEtf ? Promise.resolve([]) : getQuarters(stock.cik),
     getPrices(stock.ticker, stock.core),
     isEtf ? Promise.resolve({} as Record<string, SectorStat>) : getSectorStats(stock.sector),
@@ -89,6 +91,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     isEtf ? Promise.resolve([]) : getEarningsHistory(stock.ticker),
     isEtf ? Promise.resolve([]) : getScoreHistory(stock.ticker),
     getHoldersOf(stock.ticker),
+    isEtf ? Promise.resolve([]) : getOpinions({ ticker: stock.ticker, limit: 8 }),
   ]);
   const federal = spending[0];
   const points = isEtf ? null : stockPoints({
@@ -208,7 +211,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
 
       {points ? (
         <Suspense fallback={<ProsCons {...points} />}>
-          <ThesisSection stock={stock} points={points} quarters={quarters} federal={federal} holders={holders} />
+          <ThesisSection stock={stock} points={points} quarters={quarters} federal={federal} holders={holders} opinions={opinions} />
         </Suspense>
       ) : null}
 
@@ -309,6 +312,16 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           </div>
         </div>
       </section>
+
+      {!isEtf && opinions.length ? (
+        <section className="mt-8" aria-labelledby="opinions-title">
+          <h2 id="opinions-title" className="mb-3 font-semibold">Bağımsız yatırımcıların görüşleri</h2>
+          <div className="grid gap-3 md:grid-cols-2">
+            {opinions.map((o) => <OpinionCard key={o.post.id} o={o} showTicker={false} />)}
+          </div>
+          <p className="mt-2 text-xs text-ink-muted">Özetler yazıların açık kısmından yapay zekâ ile çıkarılır; görüşler yazarlarına aittir. Tümü: <Link href="/yatirimcilar/gorusler" className="text-primary hover:underline">Hisse görüşleri</Link></p>
+        </section>
+      ) : null}
 
       {!isEtf ? <FamousHolders holders={holders} /> : null}
 

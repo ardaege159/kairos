@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/info-tip";
 import { alpacaCloses } from "@/lib/data/alpaca";
 import { getMacro } from "@/lib/data/macro";
 import type { HolderOf } from "@/lib/data/investors";
+import type { Opinion } from "@/lib/data/opinions";
 import { quarterLabel } from "@/components/investors/bits";
 import { getSpendingThemes, type CompanySpending } from "@/lib/data/spending";
 import { getAllSectorStats, type QuarterRow, type StockRow } from "@/lib/data/stocks";
@@ -52,8 +53,8 @@ function Side({ title, icon, reasons, empty }: { title: string; icon: React.Reac
  * Kairos görünümü: bull and bear case from company data, own-history valuation, sector momentum,
  * macro conditions and federal spending themes. Recomputed on every visit from the latest data.
  */
-export async function ThesisSection({ stock, points, quarters, federal, holders }: {
-  stock: StockRow; points: { pros: Point[]; cons: Point[]; watch: Point[] }; quarters: QuarterRow[]; federal: CompanySpending | undefined; holders: HolderOf[];
+export async function ThesisSection({ stock, points, quarters, federal, holders, opinions }: {
+  stock: StockRow; points: { pros: Point[]; cons: Point[]; watch: Point[] }; quarters: QuarterRow[]; federal: CompanySpending | undefined; holders: HolderOf[]; opinions: Opinion[];
 }) {
   const [macro, stats, themes, prices] = await Promise.all([getMacro(), getAllSectorStats(), getSpendingThemes(), alpacaCloses(stock.ticker, 1100)]);
   const m = stock.metrics;
@@ -83,6 +84,12 @@ export async function ThesisSection({ stock, points, quarters, federal, holders 
     macro: macroEffects(macroSnapshot(macro), { sector: stock.sector, pe: m.pe ?? null, debtToEquity: m.debt_to_equity ?? null, marketCap: m.market_cap ?? null }),
     sector: rank ? { rank, of: ranked.length, return3m: ranked[rank - 1][1] } : null,
     valuation: med != null && now != null ? { metric: metric.label, now, median: med } : null,
+    opinions: (() => {
+      // Each author once, main-subject write-ups of the last 90 days only.
+      const recent = opinions.filter((o) => o.focus === "ana" && Date.parse(o.post.published_at) >= Date.parse(stock.as_of ?? "1970-01-01") - 90 * 864e5);
+      const authors = (s: string) => [...new Set(recent.filter((o) => o.stance === s).map((o) => o.post.source?.author ?? "?"))];
+      return recent.length ? { positive: authors("olumlu"), negative: authors("olumsuz") } : null;
+    })(),
     investors: holders.length ? {
       holders: holders.map((h) => h.investor.person),
       buyers: holders.filter((h) => h.change === "yeni" || h.change === "artirdi").map((h) => h.investor.person),
