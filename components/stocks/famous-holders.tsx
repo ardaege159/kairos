@@ -9,9 +9,9 @@ export function FamousHolders({ holders }: { holders: HolderOf[] }) {
   return (
     <section className="glass-card mt-8 p-5" aria-labelledby="famous-title">
       <h2 id="famous-title" className="flex items-center gap-1 font-semibold">
-        Ünlü yatırımcılardan kimler tutuyor?
+        Takip ettiğimiz yatırımcılardan kimler tutuyor?
         <InfoTip title="Kaynak: 13F">
-          Takip ettiğimiz tanınmış yatırımcıların SEC&apos;e bildirdiği son çeyrek sonu portföyleri. Bildirimler çeyrek bitiminden 45 gün sonraya kadar
+          Takip ettiğimiz tanınmış yatırımcıların ve S&amp;P 500&apos;ü geçen küçük fonların SEC&apos;e bildirdiği son çeyrek sonu portföyleri. Bildirimler çeyrek bitiminden 45 gün sonraya kadar
           gelir; o tarihten sonra satmış ya da almış olabilirler.
         </InfoTip>
       </h2>
@@ -35,7 +35,7 @@ export function FamousHolders({ holders }: { holders: HolderOf[] }) {
         <p className="mt-3 text-sm text-ink-muted">Takip ettiğimiz yatırımcıların son bildirimlerinde bu hisse yok.</p>
       )}
       <p className="mt-3 text-xs text-ink-muted">
-        Tüm liste: <Link href="/yatirimcilar" className="text-primary hover:underline">Ünlü yatırımcılar</Link>
+        Tüm liste: <Link href="/yatirimcilar" className="text-primary hover:underline">Yatırımcılar</Link>
       </p>
     </section>
   );

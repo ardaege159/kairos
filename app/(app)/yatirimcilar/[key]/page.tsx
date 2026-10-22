@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { ChangeBadge, FilingDate, isStale, quarterLabel } from "@/components/investors/bits";
+import { QuarterPairs } from "@/components/investors/perf";
 import { NewsList } from "@/components/news/news-list";
 import { TickerLogo } from "@/components/ticker-logo";
-import { getInvestorPortfolio } from "@/lib/data/investors";
+import { getInvestorPortfolio, sectorMix } from "@/lib/data/investors";
 import { getNewsMentioning, requestTime } from "@/lib/data/news";
 import { formatMoney } from "@/lib/format";
 
@@ -18,7 +19,8 @@ async function Detail({ params }: { params: Promise<{ key: string }> }) {
   const { key } = await params;
   const p = await getInvestorPortfolio(key);
   if (!p) notFound();
-  const [news, now] = await Promise.all([getNewsMentioning(p.investor.news, 8), requestTime()]);
+  const [news, now, mix] = await Promise.all([getNewsMentioning(p.investor.news, 8), requestTime(), sectorMix(p.holdings)]);
+  const perf = p.investor.perf;
   const stocks = p.holdings.filter((h) => !h.putCall);
   const options = p.holdings.filter((h) => h.putCall);
   const top10 = stocks.slice(0, 10).reduce((s, h) => s + h.weight, 0);
@@ -29,7 +31,7 @@ async function Detail({ params }: { params: Promise<{ key: string }> }) {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-[65ch]">
             <h1 className="text-2xl font-semibold tracking-tight md:text-[2rem] md:leading-10">{p.investor.person}</h1>
-            <p className="text-ink-muted">{p.investor.fund}</p>
+            {p.investor.fund !== p.investor.person ? <p className="text-ink-muted">{p.investor.fund}</p> : <p className="text-ink-muted">Küçük fon · sıralamada {perf?.rank}. sırada</p>}
             <p className="mt-3 text-sm leading-relaxed">{p.investor.style}</p>
           </div>
           {p.filing ? (
@@ -48,6 +50,40 @@ async function Detail({ params }: { params: Promise<{ key: string }> }) {
           </p>
         ) : null}
       </header>
+
+      {perf || mix.length ? (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {perf ? (
+            <section className="glass-card p-5 lg:col-span-2" aria-labelledby="perf-title">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="perf-title" className="font-semibold">Çeyrek çeyrek getiri ve S&amp;P 500</h2>
+                <p className="text-sm num">
+                  Yıllık <b className="text-gain">%{Math.round(perf.annual * 100)}</b> · S&amp;P 500 %{Math.round(perf.bench_annual * 100)} ·{" "}
+                  {perf.beat}/{perf.quarters} çeyrek önde · {(perf.max_drawdown ?? 0) > -0.005 ? "eksi çeyrek yok" : `en derin düşüş %${Math.round(Math.abs(perf.max_drawdown ?? 0) * 100)}`}
+                </p>
+              </div>
+              <QuarterPairs series={perf.series} />
+              <p className="mt-3 text-xs text-ink-muted">
+                Getiri, her çeyrek başında bildirilen pozisyonların çeyrek sonuna kadarki fiyat değişiminden hesaplanır (13F&apos;ten türetilmiş). Çeyrek içi
+                işlemler, temettü ve ücretler dahil değildir. Ortalama olarak portföyün %{Math.round((perf.turnover ?? 0) * 100)}&apos;ı her çeyrek yeni pozisyonlardan oluştu.
+              </p>
+            </section>
+          ) : null}
+          {mix.length ? (
+            <section className={`glass-card p-5 ${perf ? "" : "lg:col-span-3"}`} aria-labelledby="mix-title">
+              <h2 id="mix-title" className="mb-3 font-semibold">Sektör dağılımı</h2>
+              <ul className="space-y-2 text-sm">
+                {mix.slice(0, 8).map((m) => (
+                  <li key={m.sector}>
+                    <div className="mb-1 flex justify-between"><span>{m.sector}</span><span className="text-ink-muted num">%{(m.weight * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}</span></div>
+                    <span className="block h-1.5 rounded-full bg-surface-high" aria-hidden><span className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(2, m.weight * 100)}%` }} /></span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
+      ) : null}
 
       {p.filing ? (
         <div className="grid gap-4 lg:grid-cols-3">
@@ -139,7 +175,7 @@ export default function InvestorPage({ params }: PageProps<"/yatirimcilar/[key]"
   return (
     <>
       <Link href="/yatirimcilar" className="mb-4 inline-flex items-center gap-1 text-sm text-ink-muted hover:text-primary">
-        <ArrowLeft size={14} aria-hidden /> Ünlü yatırımcılar
+        <ArrowLeft size={14} aria-hidden /> Yatırımcılar
       </Link>
       <Suspense fallback={<div className="glass-card h-96 animate-pulse" aria-label="Portföy yükleniyor" />}>
         <Detail params={params} />

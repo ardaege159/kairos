@@ -4,7 +4,7 @@
 import type { MacroEffect } from "./macro-impact.ts";
 import type { Point } from "./stock.ts";
 
-export type Category = "Şirket" | "Değerleme" | "Sektör" | "Makro" | "Federal harcama" | "Ünlü yatırımcılar";
+export type Category = "Şirket" | "Değerleme" | "Sektör" | "Makro" | "Federal harcama" | "Yatırımcılar";
 export type Reason = { category: Category; title: string; text: string; tone: "positive" | "negative" | "neutral"; weight: number; source?: string | null };
 export type Stance = "olumlu" | "karisik" | "olumsuz";
 export const STANCE_LABEL: Record<Stance, string> = { olumlu: "Olumlu ağırlıklı", karisik: "Karışık", olumsuz: "Olumsuz ağırlıklı" };
@@ -68,11 +68,11 @@ export function buildThesis(t: ThesisInput) {
   const inv = t.investors;
   if (inv) {
     const names = (xs: string[]) => xs.slice(0, 4).join(", ") + (xs.length > 4 ? ` ve ${xs.length - 4} kişi daha` : "");
-    if (inv.buyers.length >= 2) reasons.push({ category: "Ünlü yatırımcılar", tone: "positive", weight: 0.4, title: "Ünlü yatırımcılar alıyor",
+    if (inv.buyers.length >= 2) reasons.push({ category: "Yatırımcılar", tone: "positive", weight: 0.4, title: "Takip edilen yatırımcılar alıyor",
       text: `${inv.quarter} döneminde ${names(inv.buyers)} pozisyon açtı ya da artırdı.` });
-    else if (inv.holders.length >= 3) reasons.push({ category: "Ünlü yatırımcılar", tone: "positive", weight: 0.3, title: "Ünlü yatırımcıların portföyünde",
+    else if (inv.holders.length >= 3) reasons.push({ category: "Yatırımcılar", tone: "positive", weight: 0.3, title: "Takip edilen yatırımcıların portföyünde",
       text: `${names(inv.holders)} bu hisseyi tutuyor (${inv.quarter}).` });
-    if (inv.sellers.length >= 2 && inv.buyers.length === 0) reasons.push({ category: "Ünlü yatırımcılar", tone: "negative", weight: 0.3, title: "Ünlü yatırımcılar azaltıyor",
+    if (inv.sellers.length >= 2 && inv.buyers.length === 0) reasons.push({ category: "Yatırımcılar", tone: "negative", weight: 0.3, title: "Takip edilen yatırımcılar azaltıyor",
       text: `${inv.quarter} döneminde ${names(inv.sellers)} pozisyonunu azalttı ya da sattı.` });
   }
 

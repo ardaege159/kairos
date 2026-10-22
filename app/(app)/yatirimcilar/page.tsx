@@ -2,142 +2,101 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { InfoTip } from "@/components/info-tip";
-import { FilingDate, isStale, quarterLabel } from "@/components/investors/bits";
+import { quarterLabel } from "@/components/investors/bits";
+import { CrowdList, crowd } from "@/components/investors/crowd";
+import { GrowthLines } from "@/components/investors/perf";
+import { InvestorTabs } from "@/components/investors/subnav";
 import { PageHeader } from "@/components/page-header";
-import { TickerLogo } from "@/components/ticker-logo";
-import { getInvestorPortfolios, type InvestorPortfolio } from "@/lib/data/investors";
+import { getInvestorPortfolios, sectorMix } from "@/lib/data/investors";
 import { requestTime } from "@/lib/data/news";
 import { formatMoney } from "@/lib/format";
 
-export const metadata: Metadata = { title: "Ünlü yatırımcılar" };
+export const metadata: Metadata = { title: "Yatırımcılar" };
 
-/** Tickers across portfolios: how many investors hold each, and how many bought or sold it last quarter. */
-function crowd(ports: InvestorPortfolio[], now: number) {
-  const by = new Map<string, { ticker: string; issuer: string; holders: string[]; buyers: string[]; sellers: string[] }>();
-  const get = (ticker: string, issuer: string) => by.get(ticker) ?? by.set(ticker, { ticker, issuer, holders: [], buyers: [], sellers: [] }).get(ticker)!;
-  // Buys and sells only from investors who have filed the latest quarter, so the lists compare the same period.
-  const latest = ports.reduce((m, p) => (p.filing && p.filing.period > m ? p.filing.period : m), "");
-  for (const p of ports) {
-    if (!p.filing || isStale(p.filing.filed_at, now)) continue;
-    const name = p.investor.person;
-    const current = p.filing.period === latest;
-    const seen = new Set<string>();
-    for (const h of p.holdings) {
-      if (!h.ticker || h.putCall || seen.has(h.ticker)) continue;
-      seen.add(h.ticker);
-      const e = get(h.ticker, h.issuer);
-      e.holders.push(name);
-      if (current && (h.change === "yeni" || h.change === "artirdi")) e.buyers.push(name);
-      if (current && h.change === "azaltti") e.sellers.push(name);
-    }
-    if (current) for (const s of p.sold) if (s.ticker) get(s.ticker, s.issuer).sellers.push(name);
-  }
-  const all = [...by.values()];
-  return {
-    latest,
-    popular: all.filter((e) => e.holders.length >= 2).sort((a, b) => b.holders.length - a.holders.length).slice(0, 10),
-    bought: all.filter((e) => e.buyers.length >= 2).sort((a, b) => b.buyers.length - a.buyers.length || a.sellers.length - b.sellers.length).slice(0, 10),
-    sold: all.filter((e) => e.sellers.length >= 2).sort((a, b) => b.sellers.length - a.sellers.length).slice(0, 10),
-  };
-}
+const pct = (v: number | null | undefined, signed = false) =>
+  v == null ? "—" : `${signed && v > 0 ? "+" : v < 0 ? "−" : ""}%${Math.abs(v * 100).toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`;
 
-function CrowdList({ title, tip, items, field, empty }: {
-  title: string; tip: string; empty: string;
-  items: { ticker: string; issuer: string; holders: string[]; buyers: string[]; sellers: string[] }[];
-  field: "holders" | "buyers" | "sellers";
-}) {
-  return (
-    <section className="glass-card p-5" aria-label={title}>
-      <h2 className="mb-3 flex items-center gap-1 font-semibold">{title}<InfoTip title={title}>{tip}</InfoTip></h2>
-      {items.length ? (
-        <ul className="space-y-2.5">
-          {items.map((e) => (
-            <li key={e.ticker} className="flex items-start gap-2 text-sm">
-              <TickerLogo ticker={e.ticker} size={22} />
-              <div className="min-w-0 flex-1">
-                <Link href={`/hisseler/${e.ticker}`} className="font-semibold hover:text-primary">{e.ticker}</Link>
-                <p className="truncate text-xs text-ink-muted" title={e[field].join(", ")}>{e[field].join(", ")}</p>
-              </div>
-              <span className="shrink-0 font-semibold num">{e[field].length}</span>
-            </li>
-          ))}
-        </ul>
-      ) : <p className="text-sm text-ink-muted">{empty}</p>}
-    </section>
-  );
-}
-
-async function Investors() {
-  const [ports, now] = await Promise.all([getInvestorPortfolios(), requestTime()]);
-  if (!ports.some((p) => p.filing)) {
+async function SmallFunds() {
+  const [ports, now] = await Promise.all([getInvestorPortfolios("small"), requestTime()]);
+  if (!ports.length) {
     return (
       <section className="glass-card max-w-[65ch] p-6">
-        <h2 className="font-semibold">Portföy verisi henüz yüklenmedi</h2>
-        <p className="mt-2 text-sm text-ink-muted">Terminalde <code>npm run veri:yatirimci</code> komutunu çalıştır (ilk sefer ~10 dakika).</p>
+        <h2 className="font-semibold">Sıralama henüz hesaplanmadı</h2>
+        <p className="mt-2 text-sm text-ink-muted">
+          SEC&apos;in çeyreklik 13F veri setleri indirilip <code>scripts/ingest/small-funds.ts</code> çalıştırılınca burada görünür.
+        </p>
       </section>
     );
   }
+  const mixes = await Promise.all(ports.map((p) => sectorMix(p.holdings)));
   const c = crowd(ports, now);
-  const ordered = [...ports].sort((a, b) => Number(!!b.filing && !isStale(b.filing.filed_at, now)) - Number(!!a.filing && !isStale(a.filing.filed_at, now)) || (b.filing?.total_value ?? 0) - (a.filing?.total_value ?? 0));
+  const perf0 = ports[0].investor.perf!;
+  const first = perf0.series[0]?.period, last = perf0.latest_period;
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 lg:grid-cols-3">
-        <CrowdList title="En çok tutulan hisseler" field="holders" items={c.popular} empty="Ortak hisse yok."
-          tip="Güncel bildirimi olan yatırımcıların kaçının portföyünde bu hisse var. Sağdaki sayı yatırımcı sayısıdır." />
-        <CrowdList title="Son çeyrekte en çok alınanlar" field="buyers" items={c.bought} empty="En az iki yatırımcının birlikte aldığı hisse yok."
-          tip={`${c.latest ? quarterLabel(c.latest) : "Son çeyrek"} bildirimini yapmış yatırımcılardan, bir önceki çeyreğe göre yeni pozisyon açan ya da hisse sayısını artıranlar.`} />
-        <CrowdList title="Son çeyrekte en çok satılanlar" field="sellers" items={c.sold} empty="En az iki yatırımcının birlikte sattığı hisse yok."
-          tip={`${c.latest ? quarterLabel(c.latest) : "Son çeyrek"} bildirimini yapmış yatırımcılardan pozisyonunu azaltan ya da tamamen satanlar.`} />
-      </div>
-
-      <section aria-labelledby="inv-title">
-        <h2 id="inv-title" className="mb-3 font-semibold">Yatırımcılar</h2>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {ordered.map((p) => {
-            const stale = p.filing ? isStale(p.filing.filed_at, now) : true;
-            const counts = { yeni: p.holdings.filter((h) => h.change === "yeni").length, satti: p.sold.length };
-            return (
-              <Link key={p.investor.key} href={`/yatirimcilar/${p.investor.key}`}
-                className={`glass-card flex flex-col gap-3 p-5 transition-colors hover:border-primary/40 ${stale ? "opacity-70" : ""}`}>
-                <div>
-                  <p className="text-lg font-semibold">{p.investor.person}</p>
-                  <p className="text-sm text-ink-muted">{p.investor.fund}</p>
-                </div>
-                {p.filing ? (
-                  <>
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-xl font-bold num">{formatMoney(p.filing.total_value)}</p>
-                      <p className="text-xs text-ink-muted num">{p.filing.positions} pozisyon</p>
-                    </div>
-                    <ul className="space-y-1.5">
-                      {p.holdings.filter((h) => !h.putCall).slice(0, 5).map((h) => (
-                        <li key={h.cusip} className="grid grid-cols-[4.5rem_minmax(0,1fr)_3rem] items-center gap-2 text-xs">
-                          <span className="truncate font-semibold">{h.ticker ?? h.issuer}</span>
-                          <span className="block h-1.5 rounded-full bg-surface-high" aria-hidden>
-                            <span className="block h-full rounded-full bg-primary" style={{ width: `${Math.max(2, h.weight * 100)}%` }} />
-                          </span>
-                          <span className="text-right num">%{(h.weight * 100).toLocaleString("tr-TR", { maximumFractionDigits: 1 })}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <p className="text-xs text-ink-muted">
-                      <FilingDate period={p.filing.period} filedAt={p.filing.filed_at} />
-                      {p.previous ? <> · {counts.yeni} yeni, {counts.satti} satış</> : null}
-                    </p>
-                    {stale ? <p className="text-xs font-medium text-loss">Bu yatırımcının yeni bildirimi yok; veriler eski.</p> : null}
-                  </>
-                ) : <p className="text-sm text-ink-muted">Bildirim bulunamadı.</p>}
-              </Link>
-            );
-          })}
-        </div>
+      <section className="glass-card p-5 text-sm leading-relaxed" aria-label="Nasıl seçildi">
+        <p>
+          SEC&apos;e 13F bildirimi veren yaklaşık 9.000 yöneticinin <b>{first ? quarterLabel(first) : ""}–{quarterLabel(last)}</b> arasındaki her
+          çeyrek bildirimi tarandı. Listeye yalnızca şu fonlar girdi: <b>100 milyon – 3 milyar $</b> büyüklükte, <b>5–40 pozisyonla</b> yoğunlaşmış,
+          tek pozisyonu portföyün %40&apos;ını aşmayan, ağırlıklı olarak tek tek hisse seçen (ETF ağırlıklı değil), her çeyrek portföyünün yarısından
+          fazlasını değiştirmeyen ve bu sürede S&amp;P 500&apos;ü geçen fonlar. Sıralama yıllık getirinin endeksi ne kadar aştığına göredir.
+        </p>
+        <p className="mt-2 text-xs text-ink-muted">
+          Getiri &quot;13F&apos;ten türetilmiş&quot;tir: her çeyrek başındaki pozisyonların çeyrek sonuna kadarki fiyat değişimi (fiyatlar bildirimlerin
+          kendisinden). Çeyrek içi alım satımlar, temettü, açığa satış ve ücretler dahil değildir; fonun gerçek getirisinden farklı olabilir. Geçmiş
+          getiri gelecekteki getiriyi göstermez; bu liste yatırım tavsiyesi değildir.
+        </p>
       </section>
 
-      <p className="text-xs text-ink-muted">
-        Kaynak: SEC 13F bildirimleri. 100 milyon $&apos;dan fazla hisse yöneten fonlar her çeyrek sonundan en geç 45 gün sonra ABD hisse
-        pozisyonlarını bildirir. Açığa satışlar, ABD dışı hisseler ve nakit dahil değildir; portföyler çeyrek sonu itibarıyladır ve o tarihten
-        sonra değişmiş olabilir. Bu bilgiler yatırım tavsiyesi değildir.
+      <section aria-labelledby="funds-title">
+        <h2 id="funds-title" className="mb-3 font-semibold">S&amp;P 500&apos;ü en çok geçen küçük fonlar</h2>
+        <ol className="flex flex-col gap-3">
+          {ports.map((p, i) => {
+            const f = p.investor.perf!;
+            const mix = mixes[i];
+            return (
+              <li key={p.investor.key}>
+                <Link href={`/yatirimcilar/${p.investor.key}`}
+                  className="glass-card grid gap-4 p-4 transition-colors hover:border-primary/40 md:grid-cols-[2.5rem_minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">
+                  <span className="text-lg font-semibold text-ink-muted num">{f.rank}</span>
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{p.investor.fund}</p>
+                    <p className="text-xs text-ink-muted num">
+                      {formatMoney(f.total_value)} · {f.positions} pozisyon
+                      {mix[0] ? <> · <span className="text-ink">{mix[0].sector} %{Math.round(mix[0].weight * 100)}</span></> : null}
+                    </p>
+                    <p className="mt-1 truncate text-xs">
+                      {p.holdings.filter((h) => !h.putCall).slice(0, 4).map((h) => h.ticker ?? h.issuer).join(", ")}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-3 text-sm num">
+                    <span className="text-xs text-ink-muted">Yıllık</span><span className="text-xs text-ink-muted">S&amp;P 500</span>
+                    <span className="text-lg font-bold text-gain">{pct(f.annual, true)}</span><span className="text-lg text-ink-muted">{pct(f.bench_annual, true)}</span>
+                    <span className="col-span-2 text-xs text-ink-muted">{f.beat}/{f.quarters} çeyrek önde · {(f.max_drawdown ?? 0) > -0.005 ? "eksi çeyrek yok" : `en derin düşüş ${pct(f.max_drawdown)}`}</span>
+                  </div>
+                  <div className="hidden md:block"><GrowthLines series={f.series} /></div>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <CrowdList title="Bu fonların ortak tercihleri" field="holders" items={c.popular} empty="Birden fazla fonun tuttuğu hisse yok."
+          tip="Listedeki fonlardan kaçının son bildiriminde bu hisse var." />
+        <CrowdList title="Son çeyrekte en çok alınanlar" field="buyers" items={c.bought} empty="En az iki fonun birlikte aldığı hisse yok."
+          tip={`${quarterLabel(last)} bildiriminde yeni pozisyon açan ya da hisse sayısını artıran fonlar.`} />
+        <CrowdList title="Son çeyrekte en çok satılanlar" field="sellers" items={c.sold} empty="En az iki fonun birlikte sattığı hisse yok."
+          tip={`${quarterLabel(last)} bildiriminde pozisyonunu azaltan ya da tamamen satan fonlar.`} />
+      </div>
+      <p className="flex items-center gap-1 text-xs text-ink-muted">
+        Grafikte mavi çizgi fonun, kesikli gri çizgi S&amp;P 500&apos;ün aynı yöntemle hesaplanan birikimli getirisidir.
+        <InfoTip title="Neden küçük fonlar?">
+          Küçük ve yoğunlaşmış fonların bir hisseye verdiği ağırlık, gerçekten inandıkları fikirleri gösterir; dev fonlarda ise pozisyonlar
+          endekse benzer ve tek bir hissenin portföye etkisi küçüktür.
+        </InfoTip>
       </p>
     </div>
   );
@@ -146,9 +105,10 @@ async function Investors() {
 export default function YatirimcilarPage() {
   return (
     <>
-      <PageHeader title="Ünlü yatırımcılar" description="Tanınmış yatırımcıların SEC'e bildirdiği ABD hisse portföyleri: neyi tutuyorlar, son çeyrekte neyi alıp sattılar." />
-      <Suspense fallback={<div className="glass-card h-96 animate-pulse" aria-label="Portföyler yükleniyor" />}>
-        <Investors />
+      <PageHeader title="Yatırımcılar" description="Son iki yılda S&P 500'ü geçen küçük ve yoğunlaşmış fonlar, ne tuttukları ve son çeyrekte ne alıp sattıkları." />
+      <InvestorTabs active="kucuk" />
+      <Suspense fallback={<div className="glass-card h-96 animate-pulse" aria-label="Fonlar yükleniyor" />}>
+        <SmallFunds />
       </Suspense>
     </>
   );

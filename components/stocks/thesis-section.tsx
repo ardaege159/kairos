@@ -19,7 +19,7 @@ import { sectorName } from "@/lib/sectors";
 import { THEME_BY_KEY } from "@/lib/spending/themes";
 import { growth } from "@/lib/spending/trends";
 
-const ORDER: Category[] = ["Şirket", "Değerleme", "Sektör", "Makro", "Federal harcama", "Ünlü yatırımcılar"];
+const ORDER: Category[] = ["Şirket", "Değerleme", "Sektör", "Makro", "Federal harcama", "Yatırımcılar"];
 const STANCE_STYLE = {
   olumlu: "bg-gain-soft/50 text-gain",
   karisik: "bg-surface-container text-ink",
