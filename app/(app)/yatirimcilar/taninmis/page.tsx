@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { InfoTip } from "@/components/info-tip";
 import { FilingDate, isStale, quarterLabel } from "@/components/investors/bits";
 import { PageHeader } from "@/components/page-header";
-import { TickerLogo } from "@/components/ticker-logo";
 import { getInvestorPortfolios } from "@/lib/data/investors";
 import { CrowdList, crowd } from "@/components/investors/crowd";
 import { InvestorTabs } from "@/components/investors/subnav";

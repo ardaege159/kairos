@@ -3,12 +3,18 @@ import { quarterLabel } from "@/components/investors/bits";
 type Point = { period: string; r: number; bench: number };
 const pct = (v: number, signed = false) => `${signed && v > 0 ? "+" : v < 0 ? "−" : ""}%${Math.abs(Math.round(v * 100))}`;
 
+/** Growth of $1: 1, then the running product of (1 + r). */
+function cumulative(rs: number[]): number[] {
+  const out = [1];
+  for (const r of rs) out.push(out[out.length - 1] * (1 + r));
+  return out;
+}
+
 /** Growth of $1 through the quarters for the fund (indigo) and SPY (grey), from the same 13F method. */
 export function GrowthLines({ series, height = 48, width = 160 }: { series: Point[]; height?: number; width?: number }) {
   if (series.length < 2) return null;
-  let f = 1, b = 1;
-  const fund = [1, ...series.map((s) => (f *= 1 + s.r))];
-  const bench = [1, ...series.map((s) => (b *= 1 + s.bench))];
+  const fund = cumulative(series.map((s) => s.r));
+  const bench = cumulative(series.map((s) => s.bench));
   const max = Math.max(...fund, ...bench), min = Math.min(...fund, ...bench);
   const y = (v: number) => (height - 3 - ((v - min) / (max - min || 1)) * (height - 6)).toFixed(1);
   const pts = (xs: number[]) => xs.map((v, i) => `${((i / (xs.length - 1)) * width).toFixed(1)},${y(v)}`).join(" ");
