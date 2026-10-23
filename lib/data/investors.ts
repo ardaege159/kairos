@@ -39,7 +39,7 @@ export async function getSmallFunds(): Promise<AnyInvestor[]> {
 }
 
 async function getSmallFundsCached(): Promise<AnyInvestor[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("small_funds").select("*").order("rank");
@@ -59,7 +59,7 @@ async function loadHoldings(ciks: number[]) {
 }
 
 async function loadHoldingsCached(ciks: number[]) {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const [{ data: filings, error: fe }, holdings] = await Promise.all([
@@ -116,7 +116,7 @@ export async function sectorMix(holdings: Holding[]): Promise<{ sector: string; 
 }
 
 async function sectorMixCached(holdings: Holding[]): Promise<{ sector: string; weight: number }[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const tickers = [...new Set(holdings.map((h) => h.ticker).filter((t): t is string => !!t))];
   const supabase = sharedDb();
@@ -145,7 +145,7 @@ export async function getHoldersOf(ticker: string): Promise<HolderOf[]> {
 }
 
 async function getHoldersOfCached(ticker: string): Promise<HolderOf[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const [{ data: rows, error }, { data: filings, error: fe }, small] = await Promise.all([

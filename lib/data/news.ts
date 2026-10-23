@@ -46,7 +46,7 @@ export async function getNews(opts: { kind?: "company" | "global"; topic?: strin
 }
 
 async function getNewsCached(opts: { kind?: "company" | "global"; topic?: string; sector?: string; hours?: number; limit?: number }): Promise<NewsItem[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   let q = supabase.from("news_items").select(NEWS_SELECT).order("published_at", { ascending: false }).limit(opts.limit ?? 60);
@@ -68,7 +68,7 @@ export async function getNewsMentioning(terms: string[], limit = 8): Promise<New
 }
 
 async function getNewsMentioningCached(safe: string[], limit: number): Promise<NewsItem[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("news_items").select(NEWS_SELECT)
@@ -85,7 +85,7 @@ export async function getTickerNews(ticker: string, limit = 12): Promise<NewsIte
 }
 
 async function getTickerNewsCached(ticker: string, limit: number): Promise<NewsItem[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase
@@ -104,7 +104,7 @@ export async function getEconCalendar(from: string, to: string): Promise<EconEve
 }
 
 async function getEconCalendarCached(from: string, to: string): Promise<EconEvent[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("econ_calendar").select("date,release_id,name,importance,source").gte("date", from).lte("date", to).order("date").order("importance", { ascending: false });
@@ -119,7 +119,7 @@ export async function getEarnings(from: string, to: string): Promise<EarningsEve
 }
 
 async function getEarningsCached(from: string, to: string): Promise<EarningsEvent[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase
@@ -146,7 +146,7 @@ export async function getUpcomingEarningsFor(tickers: string[]): Promise<Record<
 }
 
 async function getUpcomingEarningsForCached(tickers: string[]): Promise<Record<string, { report_date: string; time_of_day: string | null }>> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const today = new Date().toISOString().slice(0, 10);
@@ -165,7 +165,7 @@ export async function getNewsForTickers(tickers: string[], limit = 15): Promise<
 }
 
 async function getNewsForTickersCached(tickers: string[], limit: number): Promise<NewsItem[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase
@@ -185,7 +185,7 @@ export async function getNextEarnings(ticker: string): Promise<{ report_date: st
 }
 
 async function getNextEarningsCached(ticker: string): Promise<{ report_date: string; time_of_day: string | null; estimate_eps: number | null } | null> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const today = new Date().toISOString().slice(0, 10);
@@ -201,7 +201,7 @@ export async function getEarningsHistory(ticker: string) {
 }
 
 async function getEarningsHistoryCached(ticker: string) {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("earnings_history").select("fiscal_date_ending,reported_date,reported_eps,estimated_eps,surprise_pct")

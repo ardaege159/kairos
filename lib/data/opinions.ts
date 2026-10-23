@@ -23,7 +23,7 @@ export async function getOpinions(opts: { ticker?: string; source?: string; days
 }
 
 async function getOpinionsCached(opts: { ticker?: string; source?: string; days?: number; limit?: number }): Promise<Opinion[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   let q = supabase.from("opinion_mentions").select(SELECT).order("published_at", { ascending: false, referencedTable: "opinion_posts" }).limit(opts.limit ?? 80);

@@ -13,7 +13,7 @@ export async function alpacaDailyCloses(ticker: string): Promise<PricePoint[]> {
 
 /** Daily closes for the last `days` calendar days (e.g. ~3 years for valuation history). Cached. */
 export async function alpacaCloses(ticker: string, days: number): Promise<PricePoint[]> {
-  "use cache";
+  "use cache: remote";
   cacheLife("hours");
   cacheTag(`prices:${ticker}`);
 

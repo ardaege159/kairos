@@ -23,7 +23,7 @@ export async function getFreshness(): Promise<Freshness> {
 }
 
 async function getFreshnessCached(): Promise<Freshness> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase

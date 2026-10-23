@@ -7,7 +7,7 @@ import { getOwner } from "@/lib/supabase/server";
 /**
  * Market data (prices, metrics, news, filings…) is the same for every request and changes only when the
  * scheduled loaders run, so reads are split in two: the exported function verifies the owner on every
- * request, then calls a "use cache" reader that queries with the server-side client. User data
+ * request, then calls a "use cache: remote" reader (shared by every serverless instance) that queries with the server-side client. User data
  * (watchlist, portfolios, alerts) never goes through this path.
  */
 export async function ownerOnly() {

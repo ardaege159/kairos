@@ -29,7 +29,7 @@ export async function getInsiderTrades(ticker: string, days = 180): Promise<Insi
 }
 
 async function getInsiderTradesCached(ticker: string, days: number): Promise<InsiderRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("insider_trades").select(SELECT).eq("ticker", ticker).gte("trade_date", daysAgo(days))
@@ -45,7 +45,7 @@ export async function getRecentInsiderBuys(days = 30, minValue = 100_000, limit 
 }
 
 async function getRecentInsiderBuysCached(days: number, minValue: number, limit: number): Promise<InsiderRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("insider_trades").select(SELECT).eq("code", "P").gte("trade_date", daysAgo(days)).gte("value", minValue)

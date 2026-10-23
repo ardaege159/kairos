@@ -85,7 +85,7 @@ export async function getStock(ticker: string): Promise<StockRow | null> {
 }
 
 async function getStockCached(ticker: string): Promise<StockRow | null> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).eq("ticker", ticker.toUpperCase()).maybeSingle();
@@ -101,7 +101,7 @@ export async function getStocks(tickers: string[]): Promise<StockRow[]> {
 }
 
 async function getStocksCached(tickers: string[]): Promise<StockRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).in("ticker", tickers);
@@ -117,7 +117,7 @@ export async function listSp500(): Promise<StockRow[]> {
 }
 
 async function listSp500Cached(): Promise<StockRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).eq("in_sp500", true).order("ticker");
@@ -143,7 +143,7 @@ export async function searchStocks(opts: {
 async function searchStocksCached(opts: {
   q?: string; sector?: string; universe?: Universe; etfCategory?: string; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
 }): Promise<{ rows: ListRow[]; total: number }> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const page = Math.max(1, opts.page ?? 1);
@@ -185,7 +185,7 @@ export async function screenStocks(opts: {
 async function screenStocksCached(opts: {
   ranges: Range[]; sector?: string; sp500Only?: boolean; sort: string; dir: "asc" | "desc"; page: number;
 }): Promise<{ rows: ScreenRow[]; total: number }> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   let query = supabase.from("stock_list").select("*", { count: "exact" }).eq("asset_type", "stock").not("price", "is", null);
@@ -217,7 +217,7 @@ export async function suggestTickers(q: string, limit = 8): Promise<ListRow[]> {
 }
 
 async function suggestTickersCached(term: string, limit: number): Promise<ListRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase
@@ -239,7 +239,7 @@ export async function getSectorStats(sector: string | null): Promise<Record<stri
 }
 
 async function getSectorStatsCached(sector: string | null): Promise<Record<string, SectorStat>> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("sector_stats").select("metric,median,p25,p75,n").eq("sector", sector);
@@ -256,7 +256,7 @@ export async function getAllSectorStats(): Promise<Record<string, Record<string,
 }
 
 async function getAllSectorStatsCached(): Promise<Record<string, Record<string, SectorStat>>> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("sector_stats").select("sector,metric,median,p25,p75,n");
@@ -280,7 +280,7 @@ export async function getQuarters(cik: number | null): Promise<QuarterRow[]> {
 }
 
 async function getQuartersCached(cik: number | null): Promise<QuarterRow[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("fundamentals_q").select("period,period_end,values").eq("cik", cik).order("period");
@@ -298,7 +298,7 @@ export async function getPrices(ticker: string, core: boolean): Promise<PricePoi
 }
 
 async function getPricesCached(ticker: string, core: boolean): Promise<PricePoint[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   if (!core) return alpacaDailyCloses(ticker);
@@ -319,7 +319,7 @@ export async function getScoreHistory(ticker: string): Promise<{ date: string; s
 }
 
 async function getScoreHistoryCached(ticker: string): Promise<{ date: string; score: number }[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("score_history").select("date,score").eq("ticker", ticker).order("date", { ascending: false }).limit(370);

@@ -9,7 +9,7 @@ export async function getSeries(id: string): Promise<{ date: string; close: numb
 }
 
 async function getSeriesCached(id: string): Promise<{ date: string; close: number }[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("macro_observations").select("date,value").eq("series_id", id).order("date").limit(5000);
@@ -24,7 +24,7 @@ export async function getMacro(): Promise<MacroView[]> {
 }
 
 async function getMacroCached(): Promise<MacroView[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const rows: { series_id: string; date: string; value: number }[] = [];

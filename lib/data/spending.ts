@@ -27,7 +27,7 @@ export async function getCompanySpending(opts: { sector?: string; tickers?: stri
 }
 
 async function getCompanySpendingCached(opts: { sector?: string; tickers?: string[]; limit?: number }): Promise<CompanySpending[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   let q = supabase
@@ -70,7 +70,7 @@ export async function getSpendingActions(opts: { ticker?: string; matchedOnly?: 
 }
 
 async function getSpendingActionsCached(opts: { ticker?: string; matchedOnly?: boolean; limit?: number; sort?: "date" | "amount"; days?: number }): Promise<SpendingAction[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   let q = supabase.from("spending_actions").select(ACTION_SELECT);
@@ -92,7 +92,7 @@ export async function getSpendingAction(id: string): Promise<SpendingAction | nu
 }
 
 async function getSpendingActionCached(id: string): Promise<SpendingAction | null> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_actions").select(ACTION_SELECT).eq("id", id).maybeSingle();
@@ -106,7 +106,7 @@ export async function getSpendingThemes(): Promise<SpendingTheme[]> {
 }
 
 async function getSpendingThemesCached(): Promise<SpendingTheme[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_themes").select("key,quarters,amount_12m,amount_prev_12m,top_recipients,updated_at");
@@ -124,7 +124,7 @@ export async function getSpendingIndustries(): Promise<SpendingIndustry[]> {
 }
 
 async function getSpendingIndustriesCached(): Promise<SpendingIndustry[]> {
-  "use cache";
+  "use cache: remote";
   marketCache();
   const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_industries").select("naics_code,name,amount_12m,amount_prev_12m").order("amount_12m", { ascending: false });
