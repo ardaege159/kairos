@@ -24,7 +24,8 @@ export type ThesisInput = {
 const p = (v: number) => `%${Math.round(Math.abs(v) * 100)}`;
 const x = (v: number) => v.toLocaleString("tr-TR", { maximumFractionDigits: 1 });
 const money = (v: number) => (v >= 1e9 ? `${x(v / 1e9)} milyar $` : `${x(v / 1e6)} milyon $`);
-const lower = (s: string) => s.charAt(0).toLocaleLowerCase("tr") + s.slice(1);
+// Acronyms ("WTI", "ABD") keep their case.
+const lower = (s: string) => (/^p{Lu}{2}/u.test(s) ? s : s.charAt(0).toLocaleLowerCase("tr") + s.slice(1));
 
 export function buildThesis(t: ThesisInput) {
   const reasons: Reason[] = [];
