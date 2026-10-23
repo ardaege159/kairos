@@ -1,8 +1,10 @@
 import "server-only";
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-export async function createClient() {
+/** One Supabase client per request (React cache), shared by every data call in that render. */
+export const createClient = cache(async () => {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -23,10 +25,13 @@ export async function createClient() {
       },
     },
   );
-}
+});
 
-/** Data Access Layer entry point: the verified owner, or null. Never trust the proxy alone. */
-export async function getOwner(): Promise<{ id: string; email: string } | null> {
+/**
+ * Data Access Layer entry point: the verified owner, or null. Never trust the proxy alone.
+ * Verified once per request (React cache): a page makes dozens of data calls.
+ */
+export const getOwner = cache(async (): Promise<{ id: string; email: string } | null> => {
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const claims = data?.claims;
@@ -35,4 +40,4 @@ export async function getOwner(): Promise<{ id: string; email: string } | null> 
     return null;
   }
   return { id: claims.sub, email };
-}
+});

@@ -1,6 +1,5 @@
 import "server-only";
-import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { marketCache, ownerOnly, sharedDb } from "./shared";
 import { INVESTORS, INVESTOR_BY_CIK, type Investor } from "@/lib/investors/list";
 import { compareQuarters, type Change } from "@/lib/investors/thirteenf";
 import { sectorName } from "@/lib/sectors";
@@ -16,11 +15,6 @@ export type Holding = { cusip: string; putCall: string; issuer: string; ticker: 
 export type Filing = { period: string; filed_at: string; total_value: number; positions: number };
 export type InvestorPortfolio = { investor: AnyInvestor; filing: Filing | null; previous: Filing | null; holdings: Holding[]; sold: { issuer: string; ticker: string | null; value: number }[] };
 
-async function db() {
-  await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
-  return createClient();
-}
 
 const pct = (v: number) => `%${Math.round(v * 100)}`;
 /** "MADISON AVENUE PARTNERS, LP" -> "Madison Avenue Partners, LP" (filer names come in capitals). */
@@ -40,7 +34,14 @@ function asInvestor(f: SmallFund): AnyInvestor {
 
 const num = (v: unknown) => (v == null ? null : Number(v));
 export async function getSmallFunds(): Promise<AnyInvestor[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getSmallFundsCached();
+}
+
+async function getSmallFundsCached(): Promise<AnyInvestor[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("small_funds").select("*").order("rank");
   if (error) throw error;
   return (data ?? []).map((r) => asInvestor({
@@ -53,7 +54,14 @@ const famous = (): AnyInvestor[] => INVESTORS.map((i) => ({ ...i, kind: "famous"
 type Row = { cik: number; period: string; cusip: string; put_call: string; issuer: string; ticker: string | null; value: number; shares: number };
 
 async function loadHoldings(ciks: number[]) {
-  const supabase = await db();
+  await ownerOnly();
+  return loadHoldingsCached(ciks);
+}
+
+async function loadHoldingsCached(ciks: number[]) {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const [{ data: filings, error: fe }, holdings] = await Promise.all([
     supabase.from("investor_filings").select("cik,period,filed_at,total_value,positions").in("cik", ciks).order("period", { ascending: false }),
     (async () => {
@@ -103,8 +111,15 @@ export async function getInvestorPortfolio(key: string): Promise<InvestorPortfol
 
 /** Share of a portfolio per sector (by ticker; unmatched and non-stock positions are "Diğer"). */
 export async function sectorMix(holdings: Holding[]): Promise<{ sector: string; weight: number }[]> {
+  await ownerOnly();
+  return sectorMixCached(holdings);
+}
+
+async function sectorMixCached(holdings: Holding[]): Promise<{ sector: string; weight: number }[]> {
+  "use cache";
+  marketCache();
   const tickers = [...new Set(holdings.map((h) => h.ticker).filter((t): t is string => !!t))];
-  const supabase = await db();
+  const supabase = sharedDb();
   const sectors = new Map<string, string | null>();
   for (let i = 0; i < tickers.length; i += 300) {
     const { data, error } = await supabase.from("companies").select("ticker,sector,asset_type").in("ticker", tickers.slice(i, i + 300));
@@ -125,11 +140,18 @@ export type HolderOf = { investor: AnyInvestor; period: string; value: number; w
 
 /** Famous investors and ranked small funds holding a ticker (common stock) in their latest filing. */
 export async function getHoldersOf(ticker: string): Promise<HolderOf[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getHoldersOfCached(ticker);
+}
+
+async function getHoldersOfCached(ticker: string): Promise<HolderOf[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const [{ data: rows, error }, { data: filings, error: fe }, small] = await Promise.all([
     supabase.from("investor_holdings").select("cik,period,cusip,put_call,shares,value").eq("ticker", ticker).eq("put_call", ""),
     supabase.from("investor_filings").select("cik,period,total_value").order("period", { ascending: false }),
-    getSmallFunds(),
+    getSmallFundsCached(),
   ]);
   if (error) throw error;
   if (fe) throw fe;

@@ -1,6 +1,5 @@
 import "server-only";
-import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { marketCache, ownerOnly, sharedDb } from "./shared";
 import { fiscalQuarterOf } from "@/lib/spending/trends";
 
 export type CompanySpending = {
@@ -20,15 +19,17 @@ export type SpendingTheme = {
 };
 export type SpendingIndustry = { naics_code: string; name: string; amount_12m: number | null; amount_prev_12m: number | null };
 
-async function db() {
-  await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
-  return createClient();
-}
 
 /** Trailing-12-month federal contract obligations per listed company, largest first. */
 export async function getCompanySpending(opts: { sector?: string; tickers?: string[]; limit?: number } = {}): Promise<CompanySpending[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getCompanySpendingCached(opts);
+}
+
+async function getCompanySpendingCached(opts: { sector?: string; tickers?: string[]; limit?: number }): Promise<CompanySpending[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   let q = supabase
     .from("spending_by_company")
     .select("ticker,amount,amount_lagged,amount_prev,recipients,period_start,period_end,companies!inner(name,sector)")
@@ -64,7 +65,14 @@ const toAction = ({ companies, ...r }: RawAction): SpendingAction => ({
 });
 
 export async function getSpendingActions(opts: { ticker?: string; matchedOnly?: boolean; limit?: number; sort?: "date" | "amount"; days?: number } = {}): Promise<SpendingAction[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getSpendingActionsCached(opts);
+}
+
+async function getSpendingActionsCached(opts: { ticker?: string; matchedOnly?: boolean; limit?: number; sort?: "date" | "amount"; days?: number }): Promise<SpendingAction[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   let q = supabase.from("spending_actions").select(ACTION_SELECT);
   q = opts.sort === "date"
     ? q.order("action_date", { ascending: false }).order("amount", { ascending: false })
@@ -79,14 +87,28 @@ export async function getSpendingActions(opts: { ticker?: string; matchedOnly?: 
 }
 
 export async function getSpendingAction(id: string): Promise<SpendingAction | null> {
-  const supabase = await db();
+  await ownerOnly();
+  return getSpendingActionCached(id);
+}
+
+async function getSpendingActionCached(id: string): Promise<SpendingAction | null> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_actions").select(ACTION_SELECT).eq("id", id).maybeSingle();
   if (error) throw error;
   return data ? toAction(data as unknown as RawAction) : null;
 }
 
 export async function getSpendingThemes(): Promise<SpendingTheme[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getSpendingThemesCached();
+}
+
+async function getSpendingThemesCached(): Promise<SpendingTheme[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_themes").select("key,quarters,amount_12m,amount_prev_12m,top_recipients,updated_at");
   if (error) throw error;
   // Drop the fiscal quarter that was still in progress when the data was loaded (it is nearly empty).
@@ -97,7 +119,14 @@ export async function getSpendingThemes(): Promise<SpendingTheme[]> {
 }
 
 export async function getSpendingIndustries(): Promise<SpendingIndustry[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getSpendingIndustriesCached();
+}
+
+async function getSpendingIndustriesCached(): Promise<SpendingIndustry[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("spending_industries").select("naics_code,name,amount_12m,amount_prev_12m").order("amount_12m", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((r) => ({ ...r, amount_12m: r.amount_12m == null ? null : Number(r.amount_12m), amount_prev_12m: r.amount_prev_12m == null ? null : Number(r.amount_prev_12m) }));

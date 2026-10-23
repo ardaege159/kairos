@@ -1,6 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { marketCache, ownerOnly, sharedDb } from "./shared";
 
 export type NewsItem = {
   id: string;
@@ -27,11 +27,6 @@ export async function requestTime(): Promise<number> {
   return Date.now();
 }
 
-async function db() {
-  await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
-  return createClient();
-}
 
 type RawNews = Omit<NewsItem, "tickers"> & { news_tickers: { ticker: string; sentiment: number | null; match_score: number | null }[] };
 const NEWS_SELECT = "id,source,kind,url,title,description,source_domain,published_at,topic,sectors,news_tickers(ticker,sentiment,match_score)";
@@ -43,7 +38,14 @@ const toItem = ({ news_tickers, ...n }: RawNews): NewsItem => ({
 });
 
 export async function getNews(opts: { kind?: "company" | "global"; topic?: string; sector?: string; hours?: number; limit?: number } = {}): Promise<NewsItem[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getNewsCached(opts);
+}
+
+async function getNewsCached(opts: { kind?: "company" | "global"; topic?: string; sector?: string; hours?: number; limit?: number }): Promise<NewsItem[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   let q = supabase.from("news_items").select(NEWS_SELECT).order("published_at", { ascending: false }).limit(opts.limit ?? 60);
   if (opts.kind) q = q.eq("kind", opts.kind);
   if (opts.topic) q = q.eq("topic", opts.topic);
@@ -58,7 +60,14 @@ export async function getNews(opts: { kind?: "company" | "global"; topic?: strin
 export async function getNewsMentioning(terms: string[], limit = 8): Promise<NewsItem[]> {
   const safe = terms.map((t) => t.replace(/[%_,()*\\"]/g, " ").trim()).filter(Boolean);
   if (!safe.length) return [];
-  const supabase = await db();
+  await ownerOnly();
+  return getNewsMentioningCached(safe, limit);
+}
+
+async function getNewsMentioningCached(safe: string[], limit: number): Promise<NewsItem[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("news_items").select(NEWS_SELECT)
     .or(safe.flatMap((t) => [`title.ilike.%${t}%`, `description.ilike.%${t}%`]).join(","))
     .order("published_at", { ascending: false }).limit(limit);
@@ -68,7 +77,14 @@ export async function getNewsMentioning(terms: string[], limit = 8): Promise<New
 
 /** News linked to one ticker, newest first. */
 export async function getTickerNews(ticker: string, limit = 12): Promise<NewsItem[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getTickerNewsCached(ticker, limit);
+}
+
+async function getTickerNewsCached(ticker: string, limit: number): Promise<NewsItem[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase
     .from("news_items")
     .select(NEWS_SELECT.replace("news_tickers(", "news_tickers!inner(") )
@@ -80,7 +96,14 @@ export async function getTickerNews(ticker: string, limit = 12): Promise<NewsIte
 }
 
 export async function getEconCalendar(from: string, to: string): Promise<EconEvent[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getEconCalendarCached(from, to);
+}
+
+async function getEconCalendarCached(from: string, to: string): Promise<EconEvent[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("econ_calendar").select("date,release_id,name,importance,source").gte("date", from).lte("date", to).order("date").order("importance", { ascending: false });
   if (error) throw error;
   return data ?? [];
@@ -88,7 +111,14 @@ export async function getEconCalendar(from: string, to: string): Promise<EconEve
 
 /** Earnings in a date range, biggest companies first within each day. */
 export async function getEarnings(from: string, to: string): Promise<EarningsEvent[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getEarningsCached(from, to);
+}
+
+async function getEarningsCached(from: string, to: string): Promise<EarningsEvent[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase
     .from("earnings_calendar")
     .select("ticker,report_date,estimate_eps,time_of_day,companies(name,stock_metrics(market_cap))")
@@ -108,7 +138,14 @@ export async function getEarnings(from: string, to: string): Promise<EarningsEve
 /** Next earnings date per ticker for a set of tickers (e.g. the watchlist). */
 export async function getUpcomingEarningsFor(tickers: string[]): Promise<Record<string, { report_date: string; time_of_day: string | null }>> {
   if (!tickers.length) return {};
-  const supabase = await db();
+  await ownerOnly();
+  return getUpcomingEarningsForCached(tickers);
+}
+
+async function getUpcomingEarningsForCached(tickers: string[]): Promise<Record<string, { report_date: string; time_of_day: string | null }>> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase.from("earnings_calendar").select("ticker,report_date,time_of_day").in("ticker", tickers).gte("report_date", today).order("report_date");
   if (error) throw error;
@@ -120,7 +157,14 @@ export async function getUpcomingEarningsFor(tickers: string[]): Promise<Record<
 /** Latest news for any of the given tickers, newest first. */
 export async function getNewsForTickers(tickers: string[], limit = 15): Promise<NewsItem[]> {
   if (!tickers.length) return [];
-  const supabase = await db();
+  await ownerOnly();
+  return getNewsForTickersCached(tickers, limit);
+}
+
+async function getNewsForTickersCached(tickers: string[], limit: number): Promise<NewsItem[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase
     .from("news_items")
     .select(NEWS_SELECT.replace("news_tickers(", "news_tickers!inner("))
@@ -133,7 +177,14 @@ export async function getNewsForTickers(tickers: string[], limit = 15): Promise<
 }
 
 export async function getNextEarnings(ticker: string): Promise<{ report_date: string; time_of_day: string | null; estimate_eps: number | null } | null> {
-  const supabase = await db();
+  await ownerOnly();
+  return getNextEarningsCached(ticker);
+}
+
+async function getNextEarningsCached(ticker: string): Promise<{ report_date: string; time_of_day: string | null; estimate_eps: number | null } | null> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase.from("earnings_calendar").select("report_date,time_of_day,estimate_eps").eq("ticker", ticker).gte("report_date", today).order("report_date").limit(1);
   if (error) throw error;
@@ -142,7 +193,14 @@ export async function getNextEarnings(ticker: string): Promise<{ report_date: st
 
 /** Reported vs estimated EPS history for a ticker (Alpha Vantage), newest first. */
 export async function getEarningsHistory(ticker: string) {
-  const supabase = await db();
+  await ownerOnly();
+  return getEarningsHistoryCached(ticker);
+}
+
+async function getEarningsHistoryCached(ticker: string) {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("earnings_history").select("fiscal_date_ending,reported_date,reported_eps,estimated_eps,surprise_pct")
     .eq("ticker", ticker).order("fiscal_date_ending", { ascending: false }).limit(12);
   if (error) throw error;

@@ -1,6 +1,5 @@
 import "server-only";
-import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { marketCache, ownerOnly, sharedDb } from "./shared";
 import { ETF_CATEGORIES, pgPattern } from "@/lib/etf";
 import { filterPath, type Range } from "@/lib/screener";
 import { alpacaDailyCloses, type PricePoint } from "./alpaca";
@@ -49,14 +48,6 @@ export type ListRow = {
 export type SectorStat = { metric: string; median: number | null; p25: number | null; p75: number | null; n: number };
 export type QuarterRow = { period: string; period_end: string; values: Record<string, number> };
 
-/** All reads go through the owner check first; RLS enforces the same rule in the database. */
-async function db() {
-  // Per-user data: always render at request time (the Supabase client reads the clock while checking the session).
-  await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
-  return createClient();
-}
-
 type Joined = Omit<StockRow, "price" | "change_1d" | "as_of" | "latest_period" | "metrics" | "sector_pct" | "score" | "score_parts"> & {
   stock_metrics: Pick<StockRow, "price" | "change_1d" | "as_of" | "latest_period" | "metrics" | "sector_pct" | "score" | "score_parts"> | null;
 };
@@ -89,7 +80,14 @@ const toListRow = (r: Record<string, unknown>): ListRow => {
 };
 
 export async function getStock(ticker: string): Promise<StockRow | null> {
-  const supabase = await db();
+  await ownerOnly();
+  return getStockCached(ticker);
+}
+
+async function getStockCached(ticker: string): Promise<StockRow | null> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).eq("ticker", ticker.toUpperCase()).maybeSingle();
   if (error) throw error;
   return data ? flatten(data as unknown as Joined) : null;
@@ -98,7 +96,14 @@ export async function getStock(ticker: string): Promise<StockRow | null> {
 /** Full rows for a handful of tickers, in the order given. */
 export async function getStocks(tickers: string[]): Promise<StockRow[]> {
   if (!tickers.length) return [];
-  const supabase = await db();
+  await ownerOnly();
+  return getStocksCached(tickers);
+}
+
+async function getStocksCached(tickers: string[]): Promise<StockRow[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).in("ticker", tickers);
   if (error) throw error;
   const rows = new Map((data as unknown as Joined[]).map((r) => [r.ticker, flatten(r)]));
@@ -107,7 +112,14 @@ export async function getStocks(tickers: string[]): Promise<StockRow[]> {
 
 /** S&P 500 members (used for sector overviews; extras and the broad universe never shape sector stats). */
 export async function listSp500(): Promise<StockRow[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return listSp500Cached();
+}
+
+async function listSp500Cached(): Promise<StockRow[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("companies").select(STOCK_SELECT).eq("in_sp500", true).order("ticker");
   if (error) throw error;
   return (data as unknown as Joined[]).map(flatten);
@@ -124,7 +136,16 @@ const like = (q: string) => q.replace(/[%_,()*\\]/g, " ").trim();
 export async function searchStocks(opts: {
   q?: string; sector?: string; universe?: Universe; etfCategory?: string; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
 }): Promise<{ rows: ListRow[]; total: number }> {
-  const supabase = await db();
+  await ownerOnly();
+  return searchStocksCached(opts);
+}
+
+async function searchStocksCached(opts: {
+  q?: string; sector?: string; universe?: Universe; etfCategory?: string; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
+}): Promise<{ rows: ListRow[]; total: number }> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const page = Math.max(1, opts.page ?? 1);
   let query = supabase.from("stock_list").select("*", { count: "exact" });
   const q = like(opts.q ?? "");
@@ -157,7 +178,16 @@ export type ScreenRow = ListRow & { metrics: Record<string, number> };
 export async function screenStocks(opts: {
   ranges: Range[]; sector?: string; sp500Only?: boolean; sort: string; dir: "asc" | "desc"; page: number;
 }): Promise<{ rows: ScreenRow[]; total: number }> {
-  const supabase = await db();
+  await ownerOnly();
+  return screenStocksCached(opts);
+}
+
+async function screenStocksCached(opts: {
+  ranges: Range[]; sector?: string; sp500Only?: boolean; sort: string; dir: "asc" | "desc"; page: number;
+}): Promise<{ rows: ScreenRow[]; total: number }> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   let query = supabase.from("stock_list").select("*", { count: "exact" }).eq("asset_type", "stock").not("price", "is", null);
   if (opts.sp500Only) query = query.eq("in_sp500", true);
   if (opts.sector) query = query.eq("sector", opts.sector);
@@ -182,7 +212,14 @@ export async function screenStocks(opts: {
 export async function suggestTickers(q: string, limit = 8): Promise<ListRow[]> {
   const term = like(q);
   if (!term) return [];
-  const supabase = await db();
+  await ownerOnly();
+  return suggestTickersCached(term, limit);
+}
+
+async function suggestTickersCached(term: string, limit: number): Promise<ListRow[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase
     .from("stock_list")
     .select("*")
@@ -197,7 +234,14 @@ export async function suggestTickers(q: string, limit = 8): Promise<ListRow[]> {
 
 export async function getSectorStats(sector: string | null): Promise<Record<string, SectorStat>> {
   if (!sector) return {};
-  const supabase = await db();
+  await ownerOnly();
+  return getSectorStatsCached(sector);
+}
+
+async function getSectorStatsCached(sector: string | null): Promise<Record<string, SectorStat>> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("sector_stats").select("metric,median,p25,p75,n").eq("sector", sector);
   if (error) throw error;
   return Object.fromEntries(
@@ -207,7 +251,14 @@ export async function getSectorStats(sector: string | null): Promise<Record<stri
 
 /** sector -> metric -> distribution, for every sector. */
 export async function getAllSectorStats(): Promise<Record<string, Record<string, SectorStat>>> {
-  const supabase = await db();
+  await ownerOnly();
+  return getAllSectorStatsCached();
+}
+
+async function getAllSectorStatsCached(): Promise<Record<string, Record<string, SectorStat>>> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("sector_stats").select("sector,metric,median,p25,p75,n");
   if (error) throw error;
   const out: Record<string, Record<string, SectorStat>> = {};
@@ -224,7 +275,14 @@ export async function getAllSectorStats(): Promise<Record<string, Record<string,
 
 export async function getQuarters(cik: number | null): Promise<QuarterRow[]> {
   if (!cik) return [];
-  const supabase = await db();
+  await ownerOnly();
+  return getQuartersCached(cik);
+}
+
+async function getQuartersCached(cik: number | null): Promise<QuarterRow[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("fundamentals_q").select("period,period_end,values").eq("cik", cik).order("period");
   if (error) throw error;
   return (data ?? []).map((r) => ({
@@ -235,7 +293,14 @@ export async function getQuarters(cik: number | null): Promise<QuarterRow[]> {
 
 /** ~1 year of daily closes: stored bars for core tickers, Alpaca (cached) for everything else. */
 export async function getPrices(ticker: string, core: boolean): Promise<PricePoint[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getPricesCached(ticker, core);
+}
+
+async function getPricesCached(ticker: string, core: boolean): Promise<PricePoint[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   if (!core) return alpacaDailyCloses(ticker);
   const { data, error } = await supabase
     .from("prices_daily")
@@ -249,7 +314,14 @@ export async function getPrices(ticker: string, core: boolean): Promise<PricePoi
 
 /** Daily Kairos Score snapshots for a ticker, oldest first (last ~1 year). */
 export async function getScoreHistory(ticker: string): Promise<{ date: string; score: number }[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getScoreHistoryCached(ticker);
+}
+
+async function getScoreHistoryCached(ticker: string): Promise<{ date: string; score: number }[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase.from("score_history").select("date,score").eq("ticker", ticker).order("date", { ascending: false }).limit(370);
   if (error) throw error;
   return (data ?? []).reverse();

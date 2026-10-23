@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { getOwner } from "@/lib/supabase/server";
+import { marketCache, sharedDb } from "./shared";
 
 // ingest_runs.source values grouped into what the owner cares about.
 const GROUPS = {
@@ -18,7 +19,13 @@ export type Freshness = { key: FreshnessKey; label: string; at: string | null }[
 export async function getFreshness(): Promise<Freshness> {
   await connection();
   if (!(await getOwner())) return [];
-  const supabase = await createClient();
+  return getFreshnessCached();
+}
+
+async function getFreshnessCached(): Promise<Freshness> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   const { data, error } = await supabase
     .from("ingest_runs")
     .select("source,finished_at")

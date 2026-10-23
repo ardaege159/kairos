@@ -1,6 +1,5 @@
 import "server-only";
-import { connection } from "next/server";
-import { createClient, getOwner } from "@/lib/supabase/server";
+import { marketCache, ownerOnly, sharedDb } from "./shared";
 import type { Stance } from "@/lib/opinions/extract";
 import { SOURCE_BY_KEY, type OpinionSource } from "@/lib/opinions/sources";
 
@@ -9,11 +8,6 @@ export type Opinion = {
   post: { id: string; title: string; url: string; published_at: string; source: OpinionSource | null };
 };
 
-async function db() {
-  await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
-  return createClient();
-}
 
 type Raw = { ticker: string; stance: Stance; focus: "ana" | "yan"; summary: string; points: string[]; opinion_posts: { id: string; title: string; url: string; published_at: string; source: string } };
 const SELECT = "ticker,stance,focus,summary,points,opinion_posts!inner(id,title,url,published_at,source)";
@@ -24,7 +18,14 @@ const toOpinion = (r: Raw): Opinion => ({
 
 /** Latest opinions, newest posts first; optionally only one ticker or one source. */
 export async function getOpinions(opts: { ticker?: string; source?: string; days?: number; limit?: number } = {}): Promise<Opinion[]> {
-  const supabase = await db();
+  await ownerOnly();
+  return getOpinionsCached(opts);
+}
+
+async function getOpinionsCached(opts: { ticker?: string; source?: string; days?: number; limit?: number }): Promise<Opinion[]> {
+  "use cache";
+  marketCache();
+  const supabase = sharedDb();
   let q = supabase.from("opinion_mentions").select(SELECT).order("published_at", { ascending: false, referencedTable: "opinion_posts" }).limit(opts.limit ?? 80);
   if (opts.ticker) q = q.eq("ticker", opts.ticker);
   if (opts.source) q = q.eq("opinion_posts.source", opts.source);
