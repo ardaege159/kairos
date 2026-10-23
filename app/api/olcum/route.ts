@@ -7,6 +7,7 @@ import { getEarnings, getEconCalendar, getNews } from "@/lib/data/news";
 import { getFreshness } from "@/lib/data/freshness";
 import { getSpendingThemes } from "@/lib/data/spending";
 import { getHoldersOf } from "@/lib/data/investors";
+import { alpacaCloses } from "@/lib/data/alpaca";
 
 export async function GET() {
   const t0 = Date.now();
@@ -32,6 +33,7 @@ export async function GET() {
     await time(`${pass} freshness`, () => getFreshness());
     await time(`${pass} themes`, () => getSpendingThemes());
     await time(`${pass} holders`, () => getHoldersOf("AMZN"));
+    await time(`${pass} alpaca1100`, () => alpacaCloses("AMZN", 1100));
   }
   return NextResponse.json(out, { headers: { "Cache-Control": "no-store" } });
 }

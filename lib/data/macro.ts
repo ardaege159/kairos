@@ -20,10 +20,12 @@ async function getSeriesCached(id: string): Promise<{ date: string; close: numbe
 /** Every macro series with its transform, recent changes and reading applied. */
 export async function getMacro(): Promise<MacroView[]> {
   await ownerOnly();
-  return getMacroCached();
+  const by = await getObservationsCached();
+  return MACRO.map((def) => macroView(def, by[def.id] ?? []));
 }
 
-async function getMacroCached(): Promise<MacroView[]> {
+/** Raw observations per series (plain data: the views hold functions and cannot be cached). */
+async function getObservationsCached(): Promise<Record<string, Obs[]>> {
   "use cache: remote";
   marketCache();
   const supabase = sharedDb();
@@ -34,7 +36,7 @@ async function getMacroCached(): Promise<MacroView[]> {
     rows.push(...(data ?? []));
     if (!data || data.length < 1000) break;
   }
-  const by = new Map<string, Obs[]>();
-  for (const r of rows) by.set(r.series_id, [...(by.get(r.series_id) ?? []), { date: r.date, value: Number(r.value) }]);
-  return MACRO.map((def) => macroView(def, by.get(def.id) ?? []));
+  const by: Record<string, Obs[]> = {};
+  for (const r of rows) (by[r.series_id] ??= []).push({ date: r.date, value: Number(r.value) });
+  return by;
 }
