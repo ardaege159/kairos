@@ -5,6 +5,7 @@
 // Marketaux free plan: 100 requests/day, 3 articles per request. Items older than 30 days are deleted.
 import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
+import { cleanFeedText } from "../../lib/news/text.ts";
 import { classify, matchCompanies } from "../../lib/news/topics.ts";
 
 const CALLS = Number(process.argv.find((a) => a.startsWith("--marketaux-calls="))?.split("=")[1] ?? 30);
@@ -33,12 +34,9 @@ type NewsRow = {
 };
 type LinkRow = { news_id: string; ticker: string; match_score: number | null; sentiment: number | null };
 
-const decode = (s: string) =>
-  s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n))).trim();
 const tag = (xml: string, name: string) => {
   const m = new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i").exec(xml);
-  return m ? decode(m[1]) : null;
+  return m ? cleanFeedText(m[1]) : null;
 };
 
 const { data: run } = await db.from("ingest_runs").insert({ source: "news" }).select("id").single();
@@ -91,6 +89,8 @@ try {
     };
     for (const a of j.data) {
       mxArticles++;
+      a.title = cleanFeedText(a.title);
+      a.description = a.description ? cleanFeedText(a.description) : null;
       if (a.language && a.language !== "en") continue; // the language filter is not strict on Marketaux's side
       const linked = a.entities.filter((e) => tickers.has(e.symbol));
       const sectors = [...new Set(linked.map((e) => tickers.get(e.symbol)!.sector).filter((s): s is string => !!s))];

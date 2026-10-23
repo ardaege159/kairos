@@ -21,6 +21,7 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 | Fiyat | Alpaca `v2/stocks/bars` `feed=sip` | Sadece `core` (S&P + ekler) `prices_daily`'de; diğerleri metrik hesabında bellekte, detay grafiği `lib/data/alpaca.ts` ile anlık + önbellek. Sebep: DB ücretsiz sınırı (500 MB). |
 | Şirket haberi | Marketaux (100 istek/gün, istek başı 3) | `entities[].symbol/match_score/sentiment_score`; UI'de match_score ≥ 10. |
 | Küresel haber | RSS: CNBC, MarketWatch, Investing.com, FT, BBC | `lib/news/topics.ts` ile konu/sektör. GDELT kısa sürede 429 verip IP'yi kısıtladı, kullanılmıyor. |
+| Haber çevirisi | Gemini (`scripts/ingest/news-translate.ts`, `veri:haber` içinde) | `title_tr`/`summary_tr`; özet yalnızca başlık+kaynak açıklamasından. Arayüzde başlığa tıklayınca özet + "Haberin tamamı" linki. |
 | Ekonomik takvim | FRED releases/dates + federalreserve.gov FOMC sayfası | `lib/calendar/releases.ts` filtresi. |
 | Bilanço takvimi | Alpha Vantage EARNINGS_CALENDAR (günde 1 istek) | |
 | Federal harcama | USAspending v2: `spending_by_category/recipient` (12 ay, ilk 500 alıcı) + `recipient/{id}` ana şirket + `spending_by_transaction` (30 gün) | `lib/spending/match.ts` ile isim eşleştirme; ana şirketler `spending_recipients`'te önbellekli. |

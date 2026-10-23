@@ -9,6 +9,9 @@ export type NewsItem = {
   url: string;
   title: string;
   description: string | null;
+  /** Turkish headline and short summary (scripts/ingest/news-translate.ts); null until translated. */
+  title_tr: string | null;
+  summary_tr: string | null;
   source_domain: string | null;
   published_at: string;
   topic: string | null;
@@ -29,7 +32,7 @@ export async function requestTime(): Promise<number> {
 
 
 type RawNews = Omit<NewsItem, "tickers"> & { news_tickers: { ticker: string; sentiment: number | null; match_score: number | null }[] };
-const NEWS_SELECT = "id,source,kind,url,title,description,source_domain,published_at,topic,sectors,news_tickers(ticker,sentiment,match_score)";
+const NEWS_SELECT = "id,source,kind,url,title,description,title_tr,summary_tr,source_domain,published_at,topic,sectors,news_tickers(ticker,sentiment,match_score)";
 const toItem = ({ news_tickers, ...n }: RawNews): NewsItem => ({
   ...n,
   tickers: news_tickers

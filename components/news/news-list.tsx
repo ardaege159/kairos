@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink } from "lucide-react";
 import { TickerLogo } from "@/components/ticker-logo";
 import { TOPIC_LABEL } from "@/lib/news/topics";
 import type { NewsItem } from "@/lib/data/news";
@@ -29,10 +29,22 @@ export function NewsList({ items, emptyText, now, showTickers = true }: { items:
     <ul className="divide-y divide-outline-soft/40">
       {items.map((n) => (
         <li key={n.id} className="py-3 first:pt-0 last:pb-0">
-          <a href={n.url} target="_blank" rel="noopener noreferrer" className="group inline-flex items-start gap-1.5 font-medium leading-snug hover:text-primary">
-            <span>{n.title}</span>
-            <ExternalLink size={13} className="mt-1 shrink-0 text-outline group-hover:text-primary" aria-label="(yeni sekmede açılır)" />
-          </a>
+          {/* Click the headline to read the Turkish summary; the original article is linked inside. */}
+          <details className="group">
+            <summary className="flex cursor-pointer list-none items-start gap-1.5 font-medium leading-snug hover:text-primary [&::-webkit-details-marker]:hidden">
+              <span>{n.title_tr ?? n.title}</span>
+              <ChevronDown size={15} className="mt-0.5 shrink-0 text-outline transition-transform group-open:rotate-180" aria-hidden />
+            </summary>
+            <div className="mt-2 space-y-2 rounded-lg bg-surface-container/60 p-3 text-sm leading-relaxed">
+              {n.summary_tr ? <p>{n.summary_tr}</p> : n.description && !n.title_tr ? <p className="text-ink-muted">{n.description}</p> : null}
+              {!n.summary_tr && n.title_tr ? <p className="text-ink-muted">Bu haber için kaynakta özet yok; ayrıntılar haberin kendisinde.</p> : null}
+              {n.title_tr ? <p className="text-xs text-ink-muted">Orijinal başlık: {n.title}</p> : null}
+              <a href={n.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                Haberin tamamı ({n.source_domain ?? "kaynak"})
+                <ExternalLink size={12} aria-label="(yeni sekmede açılır)" />
+              </a>
+            </div>
+          </details>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
             <span>{n.source_domain}</span>
             <time dateTime={n.published_at}>{timeAgo(n.published_at, now)}</time>
