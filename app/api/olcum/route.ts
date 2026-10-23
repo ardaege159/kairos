@@ -14,8 +14,12 @@ export async function GET() {
   const out: Record<string, string> = { owner: `${Date.now() - t0}ms` };
   const time = async (k: string, f: () => Promise<unknown>) => {
     const t = Date.now();
-    const v = await f();
-    out[k] = `${Date.now() - t}ms ${Math.round(JSON.stringify(v).length / 1024)}KB`;
+    try {
+      const v = await f();
+      out[k] = `${Date.now() - t}ms ${Math.round(JSON.stringify(v).length / 1024)}KB`;
+    } catch (e) {
+      out[k] = `${Date.now() - t}ms HATA ${e instanceof Error ? e.message.slice(0, 200) : String(e)}`;
+    }
   };
   for (let pass = 1; pass <= 2; pass++) {
     await time(`${pass} getStock`, () => getStock("AMZN"));
