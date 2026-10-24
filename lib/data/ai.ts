@@ -67,3 +67,11 @@ export async function getAiSummary(input: SummaryInput): Promise<AiSummaryState 
   }
   return { text: cached?.summary ?? null, model: cached?.model ?? null, at: cached?.created_at ?? null, pending };
 }
+
+/** Stored summary only (no rewrite): the page polls this while a rewrite is running. */
+export async function readAiSummary(ticker: string): Promise<Omit<AiSummaryState, "pending"> | null> {
+  if (!(await getOwner())) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.from("ai_summaries").select("summary,model,created_at").eq("ticker", ticker).maybeSingle();
+  return { text: data?.summary ?? null, model: data?.model ?? null, at: data?.created_at ?? null };
+}
