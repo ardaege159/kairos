@@ -101,7 +101,7 @@ export function stockPoints(s: StockInput): { pros: Point[]; cons: Point[]; watc
   // Earnings vs analyst expectations
   const e = s.earnings;
   if (e && e.quarters >= 6 && e.beats >= e.quarters - 1) pros.push({ key: "beats", title: "Beklentileri düzenli aşıyor", strength: 0.65,
-    detail: `Son ${e.quarters} çeyreğin ${e.beats} tanesinde hisse başı kâr analist beklentisinin üstünde geldi${e.avgSurprise != null ? ` (ortalama sürpriz %${x(e.avgSurprise)})` : ""}.` });
+    detail: `Son ${e.quarters} çeyreğin ${e.beats} tanesinde hisse başı kâr analist beklentisinin üstünde geldi${e.avgSurprise != null ? ` (tipik sürpriz %${x(e.avgSurprise)})` : ""}.` });
   else if (e && e.recentMisses >= 2) cons.push({ key: "misses", title: "Beklentilerin altında kalıyor", strength: 0.6,
     detail: `Son 4 çeyreğin ${e.recentMisses} tanesinde hisse başı kâr analist beklentisinin altında kaldı.` });
 

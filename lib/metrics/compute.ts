@@ -43,12 +43,27 @@ export function ttm(f: Fundamentals, metric: string, end: string, offset = 0): n
 }
 
 /** Most recent value of an instant metric at or before `end` (looks back up to 2 quarters). */
-function instant(f: Fundamentals, metric: string, end: string): number | null {
+export function instant(f: Fundamentals, metric: string, end: string): number | null {
   for (let i = 0; i <= 2; i++) {
     const v = f.get(shiftPeriod(end, -i))?.[metric];
     if (v != null) return v;
   }
   return null;
+}
+
+/**
+ * Share count for market cap at `end`. The cover-page count is the most current, but SEC frames keep it
+ * as filed: not restated for splits, sometimes off by 1,000× or covering one share class only. The
+ * quarter's diluted weighted-average count is restated in later filings, so it is the check: when the
+ * two disagree by more than a third, the weighted count wins.
+ */
+export function sharesAt(f: Fundamentals, end: string): number | null {
+  const cover = instant(f, "shares_outstanding", end);
+  const weighted = instant(f, "shares_diluted", end);
+  if (cover == null || cover <= 0) return weighted;
+  if (weighted == null || weighted <= 0) return cover;
+  const r = cover / weighted;
+  return r > 0.75 && r < 1.33 ? cover : weighted;
 }
 
 /** Quarter holding the latest fiscal-year cash-flow figures, at most 5 quarters before `end`. */
@@ -93,15 +108,19 @@ export function fundamentalMetrics(f: Fundamentals, price: number | null): { per
   const q = f.get(period)!;
   const yearAgo = f.get(shiftPeriod(period, -4));
 
-  const revenue = ttm(f, "revenue", period);
   const netIncome = ttm(f, "net_income", period);
+  // Profit above revenue means the revenue tag caught only part of the top line (a bank's fee income,
+  // a REIT's non-rental revenue): leave every revenue-based figure empty rather than show it.
+  const rawRevenue = ttm(f, "revenue", period);
+  const revenueOk = rawRevenue == null || netIncome == null || netIncome <= rawRevenue;
+  const revenue = revenueOk ? rawRevenue : null;
   const operating = ttm(f, "operating_income", period);
-  const gross = ttm(f, "gross_profit", period);
-  const prevRevenue = ttm(f, "revenue", period, 4);
+  const gross = revenueOk ? ttm(f, "gross_profit", period) : null;
+  const prevRevenue = revenueOk ? ttm(f, "revenue", period, 4) : null;
 
   const equity = instant(f, "equity", period);
   const assets = instant(f, "assets", period);
-  const shares = instant(f, "shares_outstanding", period);
+  const shares = sharesAt(f, period);
   const debt = instant(f, "long_term_debt", period); // null = not reported, never treat as zero
   const cash = instant(f, "cash", period);
   const marketCap = price != null && shares != null ? price * shares : null;
@@ -112,7 +131,7 @@ export function fundamentalMetrics(f: Fundamentals, price: number | null): { per
   const fyv = fy ? f.get(fy)! : null;
   const capex = fyv?.capex_fy ?? null;
   const fcf = fyv?.ocf_fy != null && capex != null ? fyv.ocf_fy - capex : null;
-  const fyRevenue = fy ? ttm(f, "revenue", fy) : null;
+  const fyRevenue = fy && revenueOk ? ttm(f, "revenue", fy) : null;
   const fyNetIncome = fy ? ttm(f, "net_income", fy) : null;
   const fyOperating = fy ? ttm(f, "operating_income", fy) : null;
   const ebitda = fyOperating != null && fyv?.da_fy != null ? fyOperating + fyv.da_fy : null;
@@ -137,7 +156,7 @@ export function fundamentalMetrics(f: Fundamentals, price: number | null): { per
       net_margin: div(netIncome, revenue),
       roe: equity != null && equity > 0 ? div(netIncome, equity) : null,
       roa: div(netIncome, assets),
-      revenue_growth_yoy: growth(q.revenue ?? null, yearAgo?.revenue ?? null),
+      revenue_growth_yoy: revenueOk ? growth(q.revenue ?? null, yearAgo?.revenue ?? null) : null,
       net_income_growth_yoy: growth(q.net_income ?? null, yearAgo?.net_income ?? null),
       revenue_growth_ttm: growth(revenue, prevRevenue),
       debt_to_equity: debt != null && equity != null && equity > 0 ? debt / equity : null,

@@ -53,6 +53,27 @@ describe("ttm", () => {
   });
 });
 
+describe("data guards", () => {
+  it("checks the cover-page share count against the weighted diluted count", () => {
+    const f = sample();
+    for (const q of f.values()) q.shares_diluted = 10;
+    f.get("CY2026Q2")!.shares_outstanding = 10_000; // filed in the wrong unit
+    expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(200);
+    f.get("CY2026Q2")!.shares_outstanding = 11; // ordinary buybacks/issuance: cover page wins
+    expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(220);
+    for (const q of f.values()) delete q.shares_outstanding; // one share class only, or none filed
+    expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(200);
+  });
+
+  it("drops revenue-based figures when profit exceeds revenue", () => {
+    const f = sample();
+    for (const q of f.values()) q.revenue = q.net_income / 2; // a bank's fee income only
+    const m = fundamentalMetrics(f, 20).metrics;
+    expect([m.ps, m.net_margin, m.gross_margin, m.revenue_growth_yoy]).toEqual([null, null, null, null]);
+    expect(m.pe).not.toBeNull();
+  });
+});
+
 describe("cash flow and dividends", () => {
   // Fiscal year ends CY2025Q4: OCF 80, capex 30, D&A 20, dividends paid 15; market cap 200.
   function withCashFlow(): Fundamentals {

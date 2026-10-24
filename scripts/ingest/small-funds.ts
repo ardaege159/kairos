@@ -8,7 +8,7 @@ import { readdirSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { createClient } from "@supabase/supabase-js";
 import { INVESTORS } from "../../lib/investors/list.ts";
-import { isSmallStockPicker, medianPrices, quarterReturn, trackStats, type Holdings } from "../../lib/investors/performance.ts";
+import { isSmallStockPicker, medianPrices, quarterReturn, splitFactor, trackStats, type Holdings } from "../../lib/investors/performance.ts";
 import { companyMatcher, resolveCusips } from "./lib-cusip.ts";
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=").slice(1).join("=");
@@ -112,6 +112,32 @@ const benchSeries = periods.slice(0, -1).map((p, i) => {
   return a && b ? b / a - 1 : null;
 });
 if (benchSeries.some((b) => b == null)) throw new Error("SPY fiyatı bazı çeyreklerde bulunamadı");
+
+// 13F prices are not split-adjusted: a 10-for-1 split looks like a 90% loss. Detect splits from how
+// the share counts of managers holding a CUSIP at both quarter ends changed.
+const splits = periods.slice(0, -1).map((p, i) => {
+  const next = periods[i + 1];
+  const ratios = new Map<string, number[]>();
+  for (const [key, r0] of results) {
+    const [cik, period] = key.split("|");
+    if (period !== p) continue;
+    const r1 = results.get(`${cik}|${next}`);
+    if (!r1) continue;
+    for (const [cusip, a] of r0.holdings) {
+      const b = r1.holdings.get(cusip);
+      if (a.shares > 0 && b && b.shares > 0) (ratios.get(cusip) ?? ratios.set(cusip, []).get(cusip)!).push(b.shares / a.shares);
+    }
+  }
+  const out = new Map<string, number>();
+  for (const [cusip, rs] of ratios) {
+    const a = prices.get(p)!.get(cusip), b = prices.get(next)!.get(cusip);
+    if (!a || !b) continue;
+    const k = splitFactor(rs, b / a);
+    if (k !== 1) out.set(cusip, k);
+  }
+  return out;
+});
+console.log("bölünme düzeltmesi (çeyrek başına):", splits.map((s) => s.size).join(" "));
 console.log("dönemler:", periods.join(", "), "| SPY çeyreklik:", benchSeries.map((b) => (b! * 100).toFixed(1) + "%").join(" "));
 
 const latest = periods.at(-1)!;
@@ -129,7 +155,7 @@ for (const [key, last] of results) {
     if (r0) quartersWithHoldings++;
     if (!r0 || i === periods.length - 1) continue;
     const start: Holdings = new Map([...r0.holdings].map(([c, p]) => [c, p.value]));
-    const q = quarterReturn(start, prices.get(periods[i])!, prices.get(periods[i + 1])!);
+    const q = quarterReturn(start, prices.get(periods[i])!, prices.get(periods[i + 1])!, splits[i]);
     if (!q) continue;
     if (Math.abs(q.r) > 1) outlier = true; // more than ±100% in a quarter: almost always a data error
     returns.push(q.r); bench.push(benchSeries[i]!); coverageSum += q.coverage; worstCoverage = Math.min(worstCoverage, q.coverage);

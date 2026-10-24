@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSmallStockPicker, medianPrices, quarterReturn, trackStats } from "./performance.ts";
+import { isSmallStockPicker, medianPrices, quarterReturn, splitFactor, trackStats } from "./performance.ts";
 
 describe("prices from filings", () => {
   it("takes the median value per share and needs enough filers", () => {
@@ -19,6 +19,17 @@ describe("quarterReturn", () => {
     expect(q.r).toBeCloseTo((600 * 0.2 + 300 * -0.1) / 900);
     expect(q.coverage).toBeCloseTo(0.9);
     expect(quarterReturn(new Map([["Z", 1]]), p0, p1)).toBeNull();
+  });
+
+  it("undoes splits detected from holders' share counts", () => {
+    // 10-for-1 split: holders' counts ×10, price 100 -> 11 (a 10% gain, not a 89% loss).
+    expect(splitFactor([10, 10, 9.98, 10.02], 0.11)).toBe(10);
+    expect(splitFactor([0.2, 0.2, 0.2], 4.6)).toBe(0.2); // 1-for-5 reverse split
+    expect(splitFactor([1.02, 0.97, 1], 0.5)).toBe(1); // a real 50% fall: counts unchanged
+    expect(splitFactor([2, 2], 0.5)).toBe(1); // too few holders to tell
+    expect(splitFactor([2, 2, 2], 1)).toBe(1); // everyone doubled up, price did not halve
+    const q = quarterReturn(new Map([["A", 100]]), new Map([["A", 100]]), new Map([["A", 11]]), new Map([["A", 10]]))!;
+    expect(q.r).toBeCloseTo(0.1);
   });
 });
 

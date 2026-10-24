@@ -19,17 +19,36 @@ export function medianPrices(samples: Map<string, number[]>, min = 2): PriceTabl
 }
 
 /**
- * Return from one quarter end to the next. Positions without a price at both ends are dropped and the
- * rest re-weighted; `coverage` is the share of start value that could be priced.
+ * Split factor for one CUSIP between two quarter ends, from how the share counts of managers who held
+ * it at both ends changed (`shareRatios` = shares at end ÷ shares at start, one per manager). A split
+ * shows up as most holders' counts moving by the same whole ratio (2, 3, 10… or 1/2, 1/10…) while the
+ * price moves the other way. Returns the factor to multiply the end price by, or 1.
  */
-export function quarterReturn(start: Holdings, p0: PriceTable, p1: PriceTable): { r: number; coverage: number } | null {
+export function splitFactor(shareRatios: number[], priceRatio: number): number {
+  if (shareRatios.length < 3) return 1;
+  const s = [...shareRatios].sort((a, b) => a - b);
+  const med = s[Math.floor(s.length / 2)];
+  const k = med >= 1 ? med : 1 / med;
+  const whole = Math.round(k);
+  if (whole < 2 || Math.abs(k - whole) / whole > 0.03) return 1;
+  const factor = med >= 1 ? whole : 1 / whole;
+  const adjusted = priceRatio * factor;
+  return adjusted > 0.45 && adjusted < 1.9 ? factor : 1;
+}
+
+/**
+ * Return from one quarter end to the next. Positions without a price at both ends are dropped and the
+ * rest re-weighted; `coverage` is the share of start value that could be priced. `splits` holds the
+ * split factor for CUSIPs that split during the quarter.
+ */
+export function quarterReturn(start: Holdings, p0: PriceTable, p1: PriceTable, splits?: Map<string, number>): { r: number; coverage: number } | null {
   let total = 0, priced = 0, acc = 0;
   for (const [cusip, value] of start) {
     total += value;
     const a = p0.get(cusip), b = p1.get(cusip);
     if (a == null || b == null || a <= 0) continue;
     priced += value;
-    acc += value * (b / a - 1);
+    acc += value * ((b * (splits?.get(cusip) ?? 1)) / a - 1);
   }
   if (!total || !priced) return null;
   return { r: acc / priced, coverage: priced / total };

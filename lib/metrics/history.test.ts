@@ -30,6 +30,17 @@ describe("valuationHistory", () => {
     expect(valuationHistory(m, ends, prices).every((p) => p.pe === null)).toBe(true);
   });
 
+  it("uses split-adjusted weighted shares when the cover-page count is stale, and the previous count when the newest is missing", () => {
+    const m = f();
+    // A 10-for-1 split: older cover pages still show the pre-split count; weighted counts are restated.
+    for (const p of periods) m.get(p)!.shares_diluted = 10;
+    m.get("CY2025Q4")!.shares_outstanding = 1;
+    delete m.get("CY2026Q2")!.shares_outstanding;
+    const h = valuationHistory(m, ends, prices, { date: "2026-10-16", price: 80 });
+    expect(h[0].pe).toBe(400 / 40);
+    expect(h.at(-1)!.pe).toBe(800 / 40);
+  });
+
   it("takes medians of at least three values", () => {
     expect(median([3, null, 1, 2])).toBe(2);
     expect(median([1, 2])).toBeNull();

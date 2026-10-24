@@ -47,7 +47,7 @@ async function alpacaBars(symbols: string[], start: string, end: string): Promis
   do {
     const u = new URL("https://data.alpaca.markets/v2/stocks/bars");
     u.search = new URLSearchParams({ symbols: symbols.join(","), timeframe: "1Day", start, end, limit: "10000", feed: "sip",
-      adjustment: "split", ...(page ? { page_token: page } : {}) }).toString();
+      adjustment: "split,spin-off", ...(page ? { page_token: page } : {}) }).toString();
     let j: { bars?: Record<string, { t: string; c: number; h: number; l: number; v: number }[]>; next_page_token?: string } | null = null;
     for (let attempt = 1; attempt <= 4 && !j; attempt++) {
       const r = await fetch(u, { headers: alpacaHeaders });

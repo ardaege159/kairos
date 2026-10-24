@@ -42,7 +42,7 @@ try {
     do {
       const u = new URL('https://data.alpaca.markets/v2/stocks/bars');
       u.search = new URLSearchParams({ symbols: symbols.join(','), timeframe: '1Day', start, end, limit: '10000',
-        feed: 'sip', adjustment: 'split', ...(page ? { page_token: page } : {}) });
+        feed: 'sip', adjustment: 'split,spin-off', ...(page ? { page_token: page } : {}) });
       const j = await alpaca(u);
       requests++;
       for (const [ticker, list] of Object.entries(j.bars ?? {})) {

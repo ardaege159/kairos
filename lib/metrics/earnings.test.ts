@@ -13,8 +13,14 @@ describe("surpriseSummary", () => {
     expect(s.beats).toBe(2);
     expect(s.misses).toBe(1);
     expect(s.last?.fiscal_date_ending).toBe("2026-06-30");
-    expect(s.avgSurprise).toBeCloseTo((11.1 + 0 + 5 - 6.25) / 4);
+    expect(s.avgSurprise).toBeCloseTo((0 + 5) / 2); // median of -6.25, 0, 5, 11.1
     expect(s.recentMisses).toBe(1);
+  });
+
+  it("ignores surprise % on estimates near zero", () => {
+    const s = surpriseSummary([q("2026-06-30", 0.29, 0.01, 2800), q("2026-03-31", 1.1, 1.0, 10), q("2025-12-31", 1.05, 1.0, 5)]);
+    expect(s.beats).toBe(3);
+    expect(s.avgSurprise).toBeCloseTo(7.5);
   });
 
   it("handles no data", () => {

@@ -14,14 +14,19 @@ const UA = process.env.SEC_USER_AGENT?.trim() || 'Kairos personal research (non-
 
 // metric -> ordered tag candidates (first tag that has a value wins)
 const FLOWS = {
-  revenue: [['us-gaap', 'Revenues', 'USD'], ['us-gaap', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'], ['us-gaap', 'SalesRevenueNet', 'USD'],
-    // Banks: total revenue net of interest expense, else gross interest and dividend income.
-    ['us-gaap', 'RevenuesNetOfInterestExpense', 'USD'], ['us-gaap', 'InterestAndDividendIncomeOperating', 'USD']],
+  // Banks report total revenue net of interest expense; their contract-revenue tag is fee income only,
+  // so it must come after. Gross interest and dividend income is the last resort.
+  revenue: [['us-gaap', 'Revenues', 'USD'], ['us-gaap', 'RevenuesNetOfInterestExpense', 'USD'],
+    ['us-gaap', 'RevenueFromContractWithCustomerExcludingAssessedTax', 'USD'], ['us-gaap', 'SalesRevenueNet', 'USD'],
+    ['us-gaap', 'InterestAndDividendIncomeOperating', 'USD']],
   gross_profit: [['us-gaap', 'GrossProfit', 'USD']],
   operating_income: [['us-gaap', 'OperatingIncomeLoss', 'USD']],
-  net_income: [['us-gaap', 'NetIncomeLoss', 'USD']],
+  // Mastercard and Broadcom file quarterly profit only as ProfitLoss (includes minority interests).
+  net_income: [['us-gaap', 'NetIncomeLoss', 'USD'], ['us-gaap', 'ProfitLoss', 'USD']],
   eps_diluted: [['us-gaap', 'EarningsPerShareDiluted', 'USD-per-shares']],
   dividends_ps: [['us-gaap', 'CommonStockDividendsPerShareDeclared', 'USD-per-shares'], ['us-gaap', 'CommonStockDividendsPerShareCashPaid', 'USD-per-shares']],
+  // Restated for splits in later filings and covers every share class: checks the cover-page count.
+  shares_diluted: [['us-gaap', 'WeightedAverageNumberOfDilutedSharesOutstanding', 'shares'], ['us-gaap', 'WeightedAverageNumberOfSharesOutstandingBasic', 'shares']],
 };
 // Cash-flow statements are filed year-to-date, so 3-month frames only cover Q1. These come from
 // the annual (CYyyyy) frames and are stored as "<metric>_fy" on the quarter the fiscal year ends.
@@ -132,7 +137,20 @@ const quarterOf = (isoDate) => {
 const prevQuarter = ({ y, q }) => (q === 1 ? { y: y - 1, q: 4 } : { y, q: q - 1 });
 const inRange = new Set(quarters.map(x => `CY${x.y}Q${x.q}`));
 const years = [...new Set(quarters.map(x => x.y)), quarters.at(-1).y + 1];
-let derived = 0;
+// Some filers tag the annual total in thousands or millions (Con Edison's 2025 net income is filed as
+// 2,023,000 instead of 2,023,000,000), which would turn Q4 into a huge loss. Compare the annual value
+// with 4/3 of the first three quarters and rescale by 1,000 or 1,000,000 when that is clearly closer;
+// give up (no Q4) when no scale is plausible.
+function annualScale(val, sum3) {
+  const expected = Math.abs(sum3) * 4 / 3;
+  if (expected < 1e6 || Math.abs(val) >= expected / 50) return val;
+  for (const k of [1e3, 1e6]) {
+    const r = Math.abs(val * k) / expected;
+    if (r > 0.5 && r < 2) return val * k;
+  }
+  return null;
+}
+let derived = 0, skippedScale = 0;
 for (const y of years) {
   for (const metric of Object.keys(FLOWS).filter(m => DERIVABLE.has(m))) {
     const annual = new Map();
@@ -146,7 +164,10 @@ for (const y of years) {
       const parts = [];
       for (let p = prevQuarter(last), i = 0; i < 3; p = prevQuarter(p), i++) parts.push(rows.get(`${cik}|CY${p.y}Q${p.q}|${metric}`));
       if (parts.some(x => !x)) continue;
-      put({ cik, period: target, metric, value: a.val - parts.reduce((s, x) => s + Number(x.value), 0), unit: UNIT_LABEL[a.unit],
+      const sum3 = parts.reduce((s, x) => s + Number(x.value), 0);
+      const annualVal = annualScale(a.val, sum3);
+      if (annualVal == null) { skippedScale++; continue; }
+      put({ cik, period: target, metric, value: annualVal - sum3, unit: UNIT_LABEL[a.unit],
         period_start: null, period_end: a.end, source_tag: `derived:${a.tag}`, accn: a.accn ?? null });
       derived++;
     }
@@ -177,7 +198,7 @@ const coverage = {};
 for (const r of all) (coverage[r.metric] ??= new Set()).add(r.cik);
 const summary = {
   quarters: `${quarters[0].y}Q${quarters[0].q}..${quarters.at(-1).y}Q${quarters.at(-1).q}`,
-  issuers: ciks.size, rows: all.length, derivedQ4: derived, annualRows, ...stats, seconds: Math.round((Date.now() - started) / 1000),
+  issuers: ciks.size, rows: all.length, derivedQ4: derived, derivedQ4Skipped: skippedScale, annualRows, ...stats, seconds: Math.round((Date.now() - started) / 1000),
   coverage: Object.fromEntries(Object.entries(coverage).map(([k, v]) => [k, v.size])),
 };
 console.log(JSON.stringify(summary, null, 2));
