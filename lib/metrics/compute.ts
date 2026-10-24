@@ -65,12 +65,15 @@ export function sharesAt(f: Fundamentals, end: string): number | null {
   if (weighted == null || weighted <= 0) return cover;
   const r = cover / weighted;
   if (r > 0.75 && r < 1.33) return cover;
-  let before: number | null = null;
-  for (let i = 1; i <= 4 && before == null; i++) {
+  // Median of the four earlier quarters, so one more mis-scaled quarter does not set the reference.
+  const prior: number[] = [];
+  for (let i = 1; i <= 4; i++) {
     const v = f.get(shiftPeriod(end, -i))?.shares_diluted;
-    if (v != null && v > 0 && v !== weighted) before = v;
+    if (v != null && v > 0) prior.push(v);
   }
-  if (before == null) return weighted;
+  if (!prior.length) return weighted;
+  prior.sort((a, b) => a - b);
+  const before = prior[Math.floor(prior.length / 2)];
   return Math.abs(Math.log(cover / before)) < Math.abs(Math.log(weighted / before)) ? cover : weighted;
 }
 
