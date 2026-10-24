@@ -54,8 +54,9 @@ export function instant(f: Fundamentals, metric: string, end: string): number | 
 /**
  * Share count for market cap at `end`. The cover-page count is the most current, but SEC frames keep it
  * as filed: not restated for splits, sometimes off by 1,000× or covering one share class only. The
- * quarter's diluted weighted-average count is restated in later filings, so it is the check: when the
- * two disagree by more than a third, the weighted count wins.
+ * quarter's diluted weighted-average count is restated in later filings, so it is the check. When the
+ * two disagree by more than a third, the one closer to the previous quarters' weighted count wins: a
+ * stale pre-split cover page loses, and so does a weighted count filed 1,000× too large (Waters 2026).
  */
 export function sharesAt(f: Fundamentals, end: string): number | null {
   const cover = instant(f, "shares_outstanding", end);
@@ -63,7 +64,14 @@ export function sharesAt(f: Fundamentals, end: string): number | null {
   if (cover == null || cover <= 0) return weighted;
   if (weighted == null || weighted <= 0) return cover;
   const r = cover / weighted;
-  return r > 0.75 && r < 1.33 ? cover : weighted;
+  if (r > 0.75 && r < 1.33) return cover;
+  let before: number | null = null;
+  for (let i = 1; i <= 4 && before == null; i++) {
+    const v = f.get(shiftPeriod(end, -i))?.shares_diluted;
+    if (v != null && v > 0 && v !== weighted) before = v;
+  }
+  if (before == null) return weighted;
+  return Math.abs(Math.log(cover / before)) < Math.abs(Math.log(weighted / before)) ? cover : weighted;
 }
 
 /** Quarter holding the latest fiscal-year cash-flow figures, at most 5 quarters before `end`. */

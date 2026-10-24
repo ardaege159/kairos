@@ -61,6 +61,10 @@ describe("data guards", () => {
     expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(200);
     f.get("CY2026Q2")!.shares_outstanding = 11; // ordinary buybacks/issuance: cover page wins
     expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(220);
+    f.get("CY2026Q2")!.shares_outstanding = 15; // an acquisition paid in stock...
+    f.get("CY2026Q2")!.shares_diluted = 15_000; // ...and the weighted count filed 1,000× too large
+    expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(300);
+    f.get("CY2026Q2")!.shares_diluted = 10;
     for (const q of f.values()) delete q.shares_outstanding; // one share class only, or none filed
     expect(fundamentalMetrics(f, 20).metrics.market_cap).toBe(200);
   });
