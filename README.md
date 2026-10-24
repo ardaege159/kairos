@@ -6,6 +6,25 @@ The interface is in Turkish; code, comments and commits are in English.
 
 > Kairos is a learning project, not investment advice. Numbers are computed in code; the LLM only rewrites facts it is given.
 
+![Stock page: price, Kairos Score and its sub-scores](docs/screenshots/stock.jpg)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/outlook.jpg" alt="Rule-based outlook with the AI summary on top"></td>
+    <td><img src="docs/screenshots/heatmap.jpg" alt="S&P 500 heatmap"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Outlook: rule-based bull/bear reasons, AI summary on top</sub></td>
+    <td align="center"><sub>S&P 500 heatmap by sector</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/today.jpg" alt="Today page: news topics, upcoming data releases and earnings"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><sub>Today: news topics, upcoming US data releases and earnings</sub></td>
+  </tr>
+</table>
+
 ## What it does
 
 | Area | Details |
