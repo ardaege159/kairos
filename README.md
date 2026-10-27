@@ -67,7 +67,7 @@ flowchart LR
 - **Pages only read the database.** Loaders run on a schedule (`.github/workflows/data.yml`): prices on weekday evenings, news/macro/insiders daily, fundamentals/universe/spending weekly, bulk 13F monthly. A data-freshness badge shows the last successful load per group (`ingest_runs`).
 - **Caching.** Market data is identical for every request, so readers use Next.js `"use cache: remote"` shared across serverless instances, behind an owner check on every request. User data (watchlist, portfolios, alerts) is never cached.
 - **Storage budget.** The free database tier is 500 MB, so only S&P 500 + extra tickers keep daily price history; the other ~11,000 symbols are computed in memory during loads and fetched live (with a cache) on their detail pages.
-- **Security.** Supabase Auth with email + password or magic link, a single allowed owner email, row-level security on every table, server-side verification in a data-access layer (the proxy alone is never trusted).
+- **Access.** Market pages are public and read-only. Personal data (watchlist, portfolios, alerts, notifications) belongs to a single owner: Supabase Auth (email + password or magic link) with one allowed email, row-level security on every table, and an owner check in the data-access layer on every request. Visitors see a sample list on the dashboard and the example model portfolios instead. Only the owner's visits queue AI summary rewrites, so public traffic cannot use up the model quota.
 
 ## Engineering notes
 

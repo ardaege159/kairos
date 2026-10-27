@@ -7,6 +7,7 @@ import { InfoTip } from "@/components/info-tip";
 import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
 import { getWatchlist } from "@/lib/data/watchlist";
+import { getOwner } from "@/lib/supabase/server";
 import { getCompanySpending, getSpendingActions } from "@/lib/data/spending";
 import { GrowthBadge } from "@/components/spending/quarter-bars";
 import { growth } from "@/lib/spending/trends";
@@ -93,6 +94,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
     getHoldersOf(stock.ticker),
     isEtf ? Promise.resolve([]) : getOpinions({ ticker: stock.ticker, limit: 8 }),
   ]);
+  const owner = !!(await getOwner());
   const federal = spending[0];
   const points = isEtf ? null : stockPoints({
     metrics: stock.metrics,
@@ -158,7 +160,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           ) : null}
         </div>
         <div className="flex flex-col items-end gap-1 text-right">
-          <WatchButton ticker={stock.ticker} watched={watchlist.includes(stock.ticker)} />
+          {owner ? <WatchButton ticker={stock.ticker} watched={watchlist.includes(stock.ticker)} /> : null}
           <p className="mt-2 text-3xl font-bold tracking-tight num">{formatPrice(stock.price)}</p>
           {stock.change_1d != null ? (
             <p className={`inline-flex items-center gap-1 text-sm num ${up ? "text-gain" : "text-loss"}`}>
@@ -293,6 +295,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
         </section>
       ) : null}
 
+      {owner ? (
       <section className="glass-card mt-8 p-5" aria-labelledby="alert-title">
         <h2 id="alert-title" className="mb-3 font-semibold">Alarm</h2>
         <div className="grid gap-6 md:grid-cols-2">
@@ -312,6 +315,7 @@ async function StockDetail({ params }: { params: Promise<{ ticker: string }> }) 
           </div>
         </div>
       </section>
+      ) : null}
 
       {!isEtf && opinions.length ? (
         <section className="mt-8" aria-labelledby="opinions-title">

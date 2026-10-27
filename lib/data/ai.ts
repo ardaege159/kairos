@@ -45,22 +45,29 @@ async function generate(input: SummaryInput, hash: string, key: string) {
   }
 }
 
+/** Summaries are public; visitors read them through the server-side client, the owner through RLS. */
+async function summaryDb() {
+  return (await getOwner()) ? createClient() : createAdminClient();
+}
+
 /**
  * Cached AI summary for a stock. Never waits for the model: when the cache is missing, or older than
  * today and the outlook's facts changed, a rewrite is queued after the response and the page shows
- * the previous text (or a "being written" note) until the next visit.
+ * the previous text (or a "being written" note) until the next visit. Only the owner's visits queue
+ * rewrites, so public traffic cannot use up the model quota.
  */
 export async function getAiSummary(input: SummaryInput): Promise<AiSummaryState | null> {
   await connection();
   const key = process.env.AI_API_KEY?.trim();
-  if (!key || !(await getOwner())) return null;
-  const supabase = await createClient();
+  const supabase = await summaryDb();
+  if (!key || !supabase) return null;
+  const owner = await getOwner();
   const today = new Date().toISOString().slice(0, 10);
   const hash = createHash("sha1").update(JSON.stringify(input)).digest("hex");
   const { data: cached } = await supabase.from("ai_summaries").select("input_hash,summary,model,created_at").eq("ticker", input.ticker).maybeSingle();
   const fresh = cached && (cached.input_hash === hash || cached.created_at.slice(0, 10) === today);
   let pending = inFlight.has(input.ticker);
-  if (!fresh && !pending) {
+  if (owner && !fresh && !pending) {
     inFlight.add(input.ticker);
     pending = true;
     after(() => generate(input, hash, key));
@@ -70,8 +77,8 @@ export async function getAiSummary(input: SummaryInput): Promise<AiSummaryState 
 
 /** Stored summary only (no rewrite): the page polls this while a rewrite is running. */
 export async function readAiSummary(ticker: string): Promise<Omit<AiSummaryState, "pending"> | null> {
-  if (!(await getOwner())) return null;
-  const supabase = await createClient();
+  const supabase = await summaryDb();
+  if (!supabase) return null;
   const { data } = await supabase.from("ai_summaries").select("summary,model,created_at").eq("ticker", ticker).maybeSingle();
   return { text: data?.summary ?? null, model: data?.model ?? null, at: data?.created_at ?? null };
 }

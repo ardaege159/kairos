@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { suggestTickers } from "@/lib/data/stocks";
-import { getOwner } from "@/lib/supabase/server";
 
-/** Typeahead suggestions for the stock search box (owner only). */
+/** Typeahead suggestions for the stock search box. */
 export async function GET(request: NextRequest) {
-  if (!(await getOwner())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   const q = request.nextUrl.searchParams.get("q")?.slice(0, 40) ?? "";
   const rows = await suggestTickers(q);
   return NextResponse.json(

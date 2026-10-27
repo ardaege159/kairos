@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { getUnreadCount } from "@/lib/data/alerts";
+import { getOwner } from "@/lib/supabase/server";
 
 /** Top-bar bell with the number of unread notifications. */
 export async function NotificationBell() {
+  if (!(await getOwner())) return null;
   const unread = await getUnreadCount();
   return (
     <Link href="/bildirimler" aria-label={unread ? `Bildirimler, ${unread} okunmamış` : "Bildirimler"}

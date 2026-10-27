@@ -8,7 +8,7 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Kararlar (değiştirmeden önce sor)
 - Stack: Next.js (App Router, TypeScript) + Tailwind + Supabase (Postgres, Auth, RLS) + Vercel. Grafik: Recharts.
-- Erişim: Supabase e-posta girişi, yalnızca sahibi. Tüm tablolarda RLS.
+- Erişim (2026-10-27, kullanıcı istedi; değerlendirenler girebilsin diye): piyasa sayfaları herkese açık, giriş istemez (`publicRead()` yalnızca `connection()`). Kişisel veri (izleme listesi, portföy, alarm, bildirim, ayarlar) yalnızca sahibi: `getOwner()` + RLS; misafire `components/guest-note.tsx`, Panel'de örnek liste, Portföy'de örnek portföyler. AI özetini yalnızca sahibin ziyareti yeniden yazdırır (kota). Kotalarda sorun çıkarsa kullanıcı kapatmayı düşünüyor.
 - Evren: S&P 500 + kullanıcının ek hisseleri (`data/extra-tickers.csv`, `companies.in_sp500=false`; sektör istatistiklerine girmez, S&P sektör eşlerine göre sıralanır). Yalnızca ücretsiz veri kaynakları.
 - Tasarım: `design/DESIGN.md` renkleri esas (Geist, primary `#4648d4`, secondary `#8127cf`). Stitch React export'undaki `#6366f1` yanlış, kullanma. 2026-10-20'de kullanıcı "yapay zekâ gibi duruyor" dedi: cam efekti, mor parıltılar ve geçişli butonlar kaldırıldı. Yeni dil: koyu lacivert sabit yan panel (`--k-nav*`, hover'da çivit tonu + sol gösterge çizgisi), opak kartlar (`.glass-card` = düz yüzey + ince kenarlık, 12px köşe), düz çivit butonlar. Mor yalnızca küçük vurgu.
 - LLM Council yalnızca geliştirmede (kullanıcı isterse); üründe yok.
@@ -28,7 +28,7 @@ Kişisel kullanım için ABD hisse analiz sitesi: S&P 500 temel analiz (çeyrekl
 
 ## Yayın (2026-10-22)
 - Site: https://kairos-three-gilt.vercel.app (Vercel, ekip `arda-ege`, proje `kairos`; `main` dalına her push otomatik yayınlanır). Vercel MCP bu ekibe erişemiyor; durum için GitHub commit status'una ya da panele bak.
-- Kod: https://github.com/ardaege159/kairos (gizli, ana dal `main`). Ortam değişkenleri Vercel'de ve GitHub Secrets'ta (12 adet; kullanıcı `gh secret set -f .env.local` ile yükledi — değerleri asla okuma/yazdırma).
+- Kod: https://github.com/ardaege159/kairos (herkese açık, ana dal `main`). Ortam değişkenleri Vercel'de ve GitHub Secrets'ta (12 adet; kullanıcı `gh secret set -f .env.local` ile yükledi — değerleri asla okuma/yazdırma).
 - Zamanlanmış veri güncellemeleri: `.github/workflows/data.yml` (GitHub Actions). piyasa: hafta içi 21:30 UTC (`veri:fiyat`); gunluk: 05:00 UTC (haber, takvim, makro, Form 4, görüşler, alarm); haftalik: pazar 06:00 UTC (evren, SEC bilançoları, harcama, tanınmış 13F, metrik); aylik: ayın 15'i (13F toplu verisini `download-13f.ts` ile indirir, `small-funds.ts`). Elle: `gh workflow run data.yml -f job=<ad>`. npm betikleri `--env-file-if-exists` kullanır (CI'da dosya yok).
 
 ## Supabase

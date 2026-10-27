@@ -1,5 +1,5 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import { fiscalQuarterOf } from "@/lib/spending/trends";
 
 export type CompanySpending = {
@@ -22,7 +22,7 @@ export type SpendingIndustry = { naics_code: string; name: string; amount_12m: n
 
 /** Trailing-12-month federal contract obligations per listed company, largest first. */
 export async function getCompanySpending(opts: { sector?: string; tickers?: string[]; limit?: number } = {}): Promise<CompanySpending[]> {
-  await ownerOnly();
+  await publicRead();
   return getCompanySpendingCached(opts);
 }
 
@@ -65,7 +65,7 @@ const toAction = ({ companies, ...r }: RawAction): SpendingAction => ({
 });
 
 export async function getSpendingActions(opts: { ticker?: string; matchedOnly?: boolean; limit?: number; sort?: "date" | "amount"; days?: number } = {}): Promise<SpendingAction[]> {
-  await ownerOnly();
+  await publicRead();
   return getSpendingActionsCached(opts);
 }
 
@@ -87,7 +87,7 @@ async function getSpendingActionsCached(opts: { ticker?: string; matchedOnly?: b
 }
 
 export async function getSpendingAction(id: string): Promise<SpendingAction | null> {
-  await ownerOnly();
+  await publicRead();
   return getSpendingActionCached(id);
 }
 
@@ -101,7 +101,7 @@ async function getSpendingActionCached(id: string): Promise<SpendingAction | nul
 }
 
 export async function getSpendingThemes(): Promise<SpendingTheme[]> {
-  await ownerOnly();
+  await publicRead();
   return getSpendingThemesCached();
 }
 
@@ -119,7 +119,7 @@ async function getSpendingThemesCached(): Promise<SpendingTheme[]> {
 }
 
 export async function getSpendingIndustries(): Promise<SpendingIndustry[]> {
-  await ownerOnly();
+  await publicRead();
   return getSpendingIndustriesCached();
 }
 

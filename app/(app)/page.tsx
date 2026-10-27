@@ -11,15 +11,19 @@ import { WatchlistAdd } from "@/components/watchlist-add";
 import { getNewsForTickers, getUpcomingEarningsFor, requestTime } from "@/lib/data/news";
 import { getStocks, type StockRow } from "@/lib/data/stocks";
 import { getWatchlist } from "@/lib/data/watchlist";
+import { getOwner } from "@/lib/supabase/server";
 import { formatDate, formatPercent, formatPrice } from "@/lib/format";
 import { sectorName } from "@/lib/sectors";
 
-function WatchCard({ s, earnings }: { s: StockRow; earnings?: { report_date: string; time_of_day: string | null } }) {
+// Shown to visitors in place of a watchlist: large, well-known S&P 500 names.
+const SAMPLE_LIST = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "JPM", "XOM"];
+
+function WatchCard({ s, earnings, owner }: { s: StockRow; earnings?: { report_date: string; time_of_day: string | null }; owner: boolean }) {
   const up = (s.change_1d ?? 0) >= 0;
   return (
     <div className="glass-card relative transition-colors hover:border-primary/40">
     <div className="absolute top-3 right-3 z-10">
-      <WatchButton ticker={s.ticker} watched compact />
+      {owner ? <WatchButton ticker={s.ticker} watched compact /> : null}
     </div>
     <Link href={`/hisseler/${s.ticker}`} className="flex flex-col gap-3 rounded-[var(--radius-card)] p-4">
       <div className="flex items-center gap-3 pr-8">
@@ -63,7 +67,8 @@ function WatchCard({ s, earnings }: { s: StockRow; earnings?: { report_date: str
 }
 
 async function Dashboard() {
-  const tickers = await getWatchlist();
+  const owner = !!(await getOwner());
+  const tickers = owner ? await getWatchlist() : SAMPLE_LIST;
   if (!tickers.length) {
     return (
       <section className="glass-card max-w-2xl p-6">
@@ -115,14 +120,20 @@ async function Dashboard() {
 
       <section aria-labelledby="watch-title">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 id="watch-title" className="font-semibold">İzleme listem <span className="font-normal text-ink-muted">· {stocks.length} hisse</span></h2>
-          <div className="w-full max-w-md">
-            <WatchlistAdd exclude={tickers} />
-          </div>
+          <h2 id="watch-title" className="font-semibold">
+            {owner ? "İzleme listem" : "Örnek liste"} <span className="font-normal text-ink-muted">· {stocks.length} hisse</span>
+          </h2>
+          {owner ? (
+            <div className="w-full max-w-md">
+              <WatchlistAdd exclude={tickers} />
+            </div>
+          ) : (
+            <p className="text-sm text-ink-muted">İzleme listesi kişiseldir; misafirler S&amp;P 500&apos;ün büyük şirketlerinden örnek bir listeyi görür.</p>
+          )}
         </div>
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stocks.map((s) => (
-            <WatchCard key={s.ticker} s={s} earnings={earnings[s.ticker]} />
+            <WatchCard key={s.ticker} s={s} earnings={earnings[s.ticker]} owner={owner} />
           ))}
         </div>
       </section>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { GuestNote } from "@/components/guest-note";
 import { PageHeader } from "@/components/page-header";
 import { TickerLogo } from "@/components/ticker-logo";
 import { WatchButton } from "@/components/watch-button";
@@ -13,6 +14,13 @@ export const metadata: Metadata = { title: "Ayarlar" };
 
 async function Account() {
   const owner = await getOwner();
+  if (!owner) {
+    return (
+      <GuestNote title="Misafir olarak geziyorsun">
+        Piyasa sayfaları herkese açık. İzleme listesi, portföyler, alarmlar ve ayarlar yalnızca sahibine görünür.
+      </GuestNote>
+    );
+  }
   return (
     <section className="glass-card max-w-[65ch] p-6">
       <h2 className="font-semibold">Hesap</h2>
@@ -39,6 +47,7 @@ async function Account() {
 }
 
 async function Watchlist() {
+  if (!(await getOwner())) return null;
   const tickers = await getWatchlist();
   return (
     <section className="glass-card max-w-[65ch] p-6" aria-labelledby="wl-title">

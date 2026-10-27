@@ -1,5 +1,5 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import type { Stance } from "@/lib/opinions/extract";
 import { SOURCE_BY_KEY, type OpinionSource } from "@/lib/opinions/sources";
 
@@ -18,7 +18,7 @@ const toOpinion = (r: Raw): Opinion => ({
 
 /** Latest opinions, newest posts first; optionally only one ticker or one source. */
 export async function getOpinions(opts: { ticker?: string; source?: string; days?: number; limit?: number } = {}): Promise<Opinion[]> {
-  await ownerOnly();
+  await publicRead();
   return getOpinionsCached(opts);
 }
 

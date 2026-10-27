@@ -5,13 +5,23 @@ import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { CreatePortfolioForm } from "@/components/portfolio/create-form";
 import { RiskBadge } from "@/components/portfolio/risk-card";
+import { GuestNote } from "@/components/guest-note";
 import { TickerLogo } from "@/components/ticker-logo";
 import { analyze, listPortfolios } from "@/lib/data/portfolios";
 import { formatMoney, formatPercent } from "@/lib/format";
+import { getOwner } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Portföy" };
 
 async function Portfolios() {
+  if (!(await getOwner())) {
+    return (
+      <GuestNote title="Portföyler kişiseldir">
+        Kayıtlı portföyler yalnızca sahibine görünür. Kairos&apos;un portföy analizini (kâr/zarar, risk seviyesi, sektör dağılımı) görmek için{" "}
+        <Link href="/portfoy/modeller" className="text-primary hover:underline">örnek portföylere</Link> göz atabilirsin.
+      </GuestNote>
+    );
+  }
   const portfolios = await listPortfolios();
   const analyses = await Promise.all(portfolios.map((p) => analyze(p.positions)));
   return (

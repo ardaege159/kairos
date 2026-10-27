@@ -1,6 +1,5 @@
 import "server-only";
 import { connection } from "next/server";
-import { getOwner } from "@/lib/supabase/server";
 import { marketCache, sharedDb } from "./shared";
 
 // ingest_runs.source values grouped into what the owner cares about.
@@ -18,7 +17,6 @@ export type Freshness = { key: FreshnessKey; label: string; at: string | null }[
 /** Last successful run per data group, newest first within each group. */
 export async function getFreshness(): Promise<Freshness> {
   await connection();
-  if (!(await getOwner())) return [];
   return getFreshnessCached();
 }
 

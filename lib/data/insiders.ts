@@ -1,5 +1,5 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import type { InsiderTrade } from "@/lib/insiders/parse";
 
 export type InsiderRow = InsiderTrade & { id: string; ticker: string; filed_at: string; accession: string };
@@ -24,7 +24,7 @@ const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString().sl
 
 /** Every Form 4 transaction for a ticker in the last `days` days, newest first. */
 export async function getInsiderTrades(ticker: string, days = 180): Promise<InsiderRow[]> {
-  await ownerOnly();
+  await publicRead();
   return getInsiderTradesCached(ticker, days);
 }
 
@@ -40,7 +40,7 @@ async function getInsiderTradesCached(ticker: string, days: number): Promise<Ins
 
 /** Open-market insider purchases across the universe, largest first. */
 export async function getRecentInsiderBuys(days = 30, minValue = 100_000, limit = 15): Promise<InsiderRow[]> {
-  await ownerOnly();
+  await publicRead();
   return getRecentInsiderBuysCached(days, minValue, limit);
 }
 

@@ -1,10 +1,10 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import { MACRO, macroView, type MacroView, type Obs } from "@/lib/macro/series";
 
 /** One raw series (e.g. "USDTRY"), oldest first. */
 export async function getSeries(id: string): Promise<{ date: string; close: number }[]> {
-  await ownerOnly();
+  await publicRead();
   return getSeriesCached(id);
 }
 
@@ -19,7 +19,7 @@ async function getSeriesCached(id: string): Promise<{ date: string; close: numbe
 
 /** Every macro series with its transform, recent changes and reading applied. */
 export async function getMacro(): Promise<MacroView[]> {
-  await ownerOnly();
+  await publicRead();
   const by = await getObservationsCached();
   return MACRO.map((def) => macroView(def, by[def.id] ?? []));
 }

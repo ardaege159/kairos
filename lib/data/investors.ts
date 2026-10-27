@@ -1,5 +1,5 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import { INVESTORS, INVESTOR_BY_CIK, type Investor } from "@/lib/investors/list";
 import { compareQuarters, type Change } from "@/lib/investors/thirteenf";
 import { sectorName } from "@/lib/sectors";
@@ -34,7 +34,7 @@ function asInvestor(f: SmallFund): AnyInvestor {
 
 const num = (v: unknown) => (v == null ? null : Number(v));
 export async function getSmallFunds(): Promise<AnyInvestor[]> {
-  await ownerOnly();
+  await publicRead();
   return getSmallFundsCached();
 }
 
@@ -54,7 +54,7 @@ const famous = (): AnyInvestor[] => INVESTORS.map((i) => ({ ...i, kind: "famous"
 type Row = { cik: number; period: string; cusip: string; put_call: string; issuer: string; ticker: string | null; value: number; shares: number };
 
 async function loadHoldings(ciks: number[]) {
-  await ownerOnly();
+  await publicRead();
   return loadHoldingsCached(ciks);
 }
 
@@ -111,7 +111,7 @@ export async function getInvestorPortfolio(key: string): Promise<InvestorPortfol
 
 /** Share of a portfolio per sector (by ticker; unmatched and non-stock positions are "Diğer"). */
 export async function sectorMix(holdings: Holding[]): Promise<{ sector: string; weight: number }[]> {
-  await ownerOnly();
+  await publicRead();
   return sectorMixCached(holdings);
 }
 
@@ -140,7 +140,7 @@ export type HolderOf = { investor: AnyInvestor; period: string; value: number; w
 
 /** Famous investors and ranked small funds holding a ticker (common stock) in their latest filing. */
 export async function getHoldersOf(ticker: string): Promise<HolderOf[]> {
-  await ownerOnly();
+  await publicRead();
   return getHoldersOfCached(ticker);
 }
 

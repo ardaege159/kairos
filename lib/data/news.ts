@@ -1,6 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 
 export type NewsItem = {
   id: string;
@@ -41,7 +41,7 @@ const toItem = ({ news_tickers, ...n }: RawNews): NewsItem => ({
 });
 
 export async function getNews(opts: { kind?: "company" | "global"; topic?: string; sector?: string; hours?: number; limit?: number } = {}): Promise<NewsItem[]> {
-  await ownerOnly();
+  await publicRead();
   return getNewsCached(opts);
 }
 
@@ -63,7 +63,7 @@ async function getNewsCached(opts: { kind?: "company" | "global"; topic?: string
 export async function getNewsMentioning(terms: string[], limit = 8): Promise<NewsItem[]> {
   const safe = terms.map((t) => t.replace(/[%_,()*\\"]/g, " ").trim()).filter(Boolean);
   if (!safe.length) return [];
-  await ownerOnly();
+  await publicRead();
   return getNewsMentioningCached(safe, limit);
 }
 
@@ -80,7 +80,7 @@ async function getNewsMentioningCached(safe: string[], limit: number): Promise<N
 
 /** News linked to one ticker, newest first. */
 export async function getTickerNews(ticker: string, limit = 12): Promise<NewsItem[]> {
-  await ownerOnly();
+  await publicRead();
   return getTickerNewsCached(ticker, limit);
 }
 
@@ -99,7 +99,7 @@ async function getTickerNewsCached(ticker: string, limit: number): Promise<NewsI
 }
 
 export async function getEconCalendar(from: string, to: string): Promise<EconEvent[]> {
-  await ownerOnly();
+  await publicRead();
   return getEconCalendarCached(from, to);
 }
 
@@ -114,7 +114,7 @@ async function getEconCalendarCached(from: string, to: string): Promise<EconEven
 
 /** Earnings in a date range, biggest companies first within each day. */
 export async function getEarnings(from: string, to: string): Promise<EarningsEvent[]> {
-  await ownerOnly();
+  await publicRead();
   return getEarningsCached(from, to);
 }
 
@@ -141,7 +141,7 @@ async function getEarningsCached(from: string, to: string): Promise<EarningsEven
 /** Next earnings date per ticker for a set of tickers (e.g. the watchlist). */
 export async function getUpcomingEarningsFor(tickers: string[]): Promise<Record<string, { report_date: string; time_of_day: string | null }>> {
   if (!tickers.length) return {};
-  await ownerOnly();
+  await publicRead();
   return getUpcomingEarningsForCached(tickers);
 }
 
@@ -160,7 +160,7 @@ async function getUpcomingEarningsForCached(tickers: string[]): Promise<Record<s
 /** Latest news for any of the given tickers, newest first. */
 export async function getNewsForTickers(tickers: string[], limit = 15): Promise<NewsItem[]> {
   if (!tickers.length) return [];
-  await ownerOnly();
+  await publicRead();
   return getNewsForTickersCached(tickers, limit);
 }
 
@@ -180,7 +180,7 @@ async function getNewsForTickersCached(tickers: string[], limit: number): Promis
 }
 
 export async function getNextEarnings(ticker: string): Promise<{ report_date: string; time_of_day: string | null; estimate_eps: number | null } | null> {
-  await ownerOnly();
+  await publicRead();
   return getNextEarningsCached(ticker);
 }
 
@@ -196,7 +196,7 @@ async function getNextEarningsCached(ticker: string): Promise<{ report_date: str
 
 /** Reported vs estimated EPS history for a ticker (Alpha Vantage), newest first. */
 export async function getEarningsHistory(ticker: string) {
-  await ownerOnly();
+  await publicRead();
   return getEarningsHistoryCached(ticker);
 }
 

@@ -11,6 +11,7 @@ import { ValueChart } from "@/components/portfolio/value-chart";
 import { TickerLogo } from "@/components/ticker-logo";
 import { requestTime } from "@/lib/data/news";
 import { analyze, getPortfolio } from "@/lib/data/portfolios";
+import { getOwner } from "@/lib/supabase/server";
 import { getSeries } from "@/lib/data/macro";
 import { benchmarkHistory, historyInTry, rateOn, tryBreakdown } from "@/lib/portfolio/currency";
 import { formatDate, formatMoney, formatPercent, formatPrice } from "@/lib/format";
@@ -42,6 +43,7 @@ function Bars({ title, rows }: { title: string; rows: { label: string; weight: n
 async function Detail({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const tl = sp.para === "tl";
+  if (!(await getOwner())) notFound();
   const portfolio = await getPortfolio(id);
   if (!portfolio) notFound();
   const [a, now, rates] = await Promise.all([analyze(portfolio.positions), requestTime(), getSeries("USDTRY")]);

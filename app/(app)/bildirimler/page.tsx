@@ -4,11 +4,13 @@ import { Suspense } from "react";
 import { BellRing, CalendarClock, Landmark, TrendingUp, UserCheck } from "lucide-react";
 import { AlertForm, DeleteAlertButton } from "@/components/alerts/alert-form";
 import { timeAgo } from "@/components/news/news-list";
+import { GuestNote } from "@/components/guest-note";
 import { PageHeader } from "@/components/page-header";
 import { TickerLogo } from "@/components/ticker-logo";
 import { getAlerts, getNotifications } from "@/lib/data/alerts";
 import { requestTime } from "@/lib/data/news";
 import { ALERT_SHORT } from "@/lib/alerts/evaluate";
+import { getOwner } from "@/lib/supabase/server";
 import { clearRead, markAllRead } from "./actions";
 
 export const metadata: Metadata = { title: "Bildirimler" };
@@ -16,6 +18,13 @@ export const metadata: Metadata = { title: "Bildirimler" };
 const ICON = { alert: BellRing, earnings: CalendarClock, move: TrendingUp, insider: UserCheck, federal: Landmark } as const;
 
 async function Content() {
+  if (!(await getOwner())) {
+    return (
+      <GuestNote title="Bildirimler ve alarmlar kişiseldir">
+        Sahibi fiyat, günlük hareket ve skor alarmları kurar; Kairos her veri güncellemesinden sonra bunları kontrol edip bildirim gönderir.
+      </GuestNote>
+    );
+  }
   const [notes, alerts, now] = await Promise.all([getNotifications(), getAlerts(), requestTime()]);
   const unread = notes.filter((n) => !n.read_at).length;
   return (

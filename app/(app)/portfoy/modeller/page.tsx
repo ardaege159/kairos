@@ -8,6 +8,7 @@ import { RiskBadge, RiskCard } from "@/components/portfolio/risk-card";
 import { TickerLogo } from "@/components/ticker-logo";
 import { assetInfo } from "@/lib/data/portfolios";
 import { getAllSectorStats, getPrices, listSp500 } from "@/lib/data/stocks";
+import { getOwner } from "@/lib/supabase/server";
 import { formatPercent } from "@/lib/format";
 import { assessRisk, weightedReturns, type Series } from "@/lib/portfolio/analytics";
 import { buildModels } from "@/lib/portfolio/models";
@@ -16,7 +17,7 @@ import { sectorName } from "@/lib/sectors";
 export const metadata: Metadata = { title: "Örnek portföyler" };
 
 async function Models() {
-  const [members, stats] = await Promise.all([listSp500(), getAllSectorStats()]);
+  const [members, stats, owner] = await Promise.all([listSp500(), getAllSectorStats(), getOwner()]);
   const models = buildModels(
     members.map((s) => ({ ticker: s.ticker, name: s.name, sector: s.sector, price: s.price, score: s.score, metrics: s.metrics, pct: s.sector_pct })),
     Object.fromEntries(Object.entries(stats).map(([sec, m]) => [sec, m.pe?.median ?? null])),
@@ -85,9 +86,11 @@ async function Models() {
                     {m.rules.map((r) => <li key={r}>{r}</li>)}
                   </ul>
                 </div>
-                <div className="mt-4">
-                  <CopyModelButton name={`${m.name} (örnek)`} picks={m.picks.map((p) => ({ ticker: p.ticker, price: p.price ?? 0 }))} />
-                </div>
+                {owner ? (
+                  <div className="mt-4">
+                    <CopyModelButton name={`${m.name} (örnek)`} picks={m.picks.map((p) => ({ ticker: p.ticker, price: p.price ?? 0 }))} />
+                  </div>
+                ) : null}
               </div>
               {risk ? <RiskCard risk={risk} title="Risk" /> : null}
             </div>

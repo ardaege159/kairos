@@ -1,5 +1,5 @@
 import "server-only";
-import { marketCache, ownerOnly, sharedDb } from "./shared";
+import { marketCache, publicRead, sharedDb } from "./shared";
 import { ETF_CATEGORIES, pgPattern } from "@/lib/etf";
 import { filterPath, type Range } from "@/lib/screener";
 import { alpacaDailyCloses, type PricePoint } from "./alpaca";
@@ -80,7 +80,7 @@ const toListRow = (r: Record<string, unknown>): ListRow => {
 };
 
 export async function getStock(ticker: string): Promise<StockRow | null> {
-  await ownerOnly();
+  await publicRead();
   return getStockCached(ticker);
 }
 
@@ -96,7 +96,7 @@ async function getStockCached(ticker: string): Promise<StockRow | null> {
 /** Full rows for a handful of tickers, in the order given. */
 export async function getStocks(tickers: string[]): Promise<StockRow[]> {
   if (!tickers.length) return [];
-  await ownerOnly();
+  await publicRead();
   return getStocksCached(tickers);
 }
 
@@ -112,7 +112,7 @@ async function getStocksCached(tickers: string[]): Promise<StockRow[]> {
 
 /** S&P 500 members (used for sector overviews; extras and the broad universe never shape sector stats). */
 export async function listSp500(): Promise<StockRow[]> {
-  await ownerOnly();
+  await publicRead();
   return listSp500Cached();
 }
 
@@ -136,7 +136,7 @@ const like = (q: string) => q.replace(/[%_,()*\\]/g, " ").trim();
 export async function searchStocks(opts: {
   q?: string; sector?: string; universe?: Universe; etfCategory?: string; sort?: SortKey; dir?: "asc" | "desc"; page?: number;
 }): Promise<{ rows: ListRow[]; total: number }> {
-  await ownerOnly();
+  await publicRead();
   return searchStocksCached(opts);
 }
 
@@ -178,7 +178,7 @@ export type ScreenRow = ListRow & { metrics: Record<string, number> };
 export async function screenStocks(opts: {
   ranges: Range[]; sector?: string; sp500Only?: boolean; sort: string; dir: "asc" | "desc"; page: number;
 }): Promise<{ rows: ScreenRow[]; total: number }> {
-  await ownerOnly();
+  await publicRead();
   return screenStocksCached(opts);
 }
 
@@ -212,7 +212,7 @@ async function screenStocksCached(opts: {
 export async function suggestTickers(q: string, limit = 8): Promise<ListRow[]> {
   const term = like(q);
   if (!term) return [];
-  await ownerOnly();
+  await publicRead();
   return suggestTickersCached(term, limit);
 }
 
@@ -234,7 +234,7 @@ async function suggestTickersCached(term: string, limit: number): Promise<ListRo
 
 export async function getSectorStats(sector: string | null): Promise<Record<string, SectorStat>> {
   if (!sector) return {};
-  await ownerOnly();
+  await publicRead();
   return getSectorStatsCached(sector);
 }
 
@@ -251,7 +251,7 @@ async function getSectorStatsCached(sector: string | null): Promise<Record<strin
 
 /** sector -> metric -> distribution, for every sector. */
 export async function getAllSectorStats(): Promise<Record<string, Record<string, SectorStat>>> {
-  await ownerOnly();
+  await publicRead();
   return getAllSectorStatsCached();
 }
 
@@ -275,7 +275,7 @@ async function getAllSectorStatsCached(): Promise<Record<string, Record<string, 
 
 export async function getQuarters(cik: number | null): Promise<QuarterRow[]> {
   if (!cik) return [];
-  await ownerOnly();
+  await publicRead();
   return getQuartersCached(cik);
 }
 
@@ -293,7 +293,7 @@ async function getQuartersCached(cik: number | null): Promise<QuarterRow[]> {
 
 /** ~1 year of daily closes: stored bars for core tickers, Alpaca (cached) for everything else. */
 export async function getPrices(ticker: string, core: boolean): Promise<PricePoint[]> {
-  await ownerOnly();
+  await publicRead();
   return getPricesCached(ticker, core);
 }
 
@@ -314,7 +314,7 @@ async function getPricesCached(ticker: string, core: boolean): Promise<PricePoin
 
 /** Daily Kairos Score snapshots for a ticker, oldest first (last ~1 year). */
 export async function getScoreHistory(ticker: string): Promise<{ date: string; score: number }[]> {
-  await ownerOnly();
+  await publicRead();
   return getScoreHistoryCached(ticker);
 }
 

@@ -2,17 +2,16 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getOwner } from "@/lib/supabase/server";
 
 /**
- * Market data (prices, metrics, news, filings…) is the same for every request and changes only when the
- * scheduled loaders run, so reads are split in two: the exported function verifies the owner on every
- * request, then calls a "use cache: remote" reader (shared by every serverless instance) that queries with the server-side client. User data
- * (watchlist, portfolios, alerts) never goes through this path.
+ * Market data (prices, metrics, news, filings…) is public and the same for every request; it changes only
+ * when the scheduled loaders run. So reads are split in two: the exported function marks the request as
+ * dynamic, then calls a "use cache: remote" reader (shared by every serverless instance) that queries with
+ * the server-side client. User data (watchlist, portfolios, alerts) never goes through this path: it stays
+ * owner-only, checked with getOwner() and row-level security.
  */
-export async function ownerOnly() {
+export async function publicRead() {
   await connection();
-  if (!(await getOwner())) throw new Error("Yetkisiz erişim");
 }
 
 /** Call first inside a "use cache" reader: fresh for 5 minutes, refreshed in the background every 15. */

@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPrices, getStock } from "@/lib/data/stocks";
-import { getOwner } from "@/lib/supabase/server";
 
 /** Closing price on a date (or the last trading day before it), for prefilling purchase prices. */
 export async function GET(request: NextRequest) {
-  if (!(await getOwner())) return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   const t = request.nextUrl.searchParams.get("t")?.toUpperCase() ?? "";
   const d = request.nextUrl.searchParams.get("d") ?? "";
   if (!/^[A-Z0-9.\-]{1,10}$/.test(t) || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return NextResponse.json({ error: "Geçersiz istek" }, { status: 400 });

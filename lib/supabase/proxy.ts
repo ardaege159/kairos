@@ -1,9 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/giris", "/auth"];
-
-/** Refreshes the Supabase session cookie and redirects signed-out visitors to /giris. */
+/**
+ * Refreshes the Supabase session cookie. Market pages are public; personal data (watchlist, portfolios,
+ * alerts, notifications) is checked per request with getOwner() and protected by row-level security.
+ */
 export async function updateSession(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl;
 
@@ -34,14 +35,7 @@ export async function updateSession(request: NextRequest) {
   );
 
   // Must run right after creating the client; it refreshes expired tokens.
-  const { data } = await supabase.auth.getClaims();
-
-  if (!data?.claims && !PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/giris";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  await supabase.auth.getClaims();
 
   return response;
 }
